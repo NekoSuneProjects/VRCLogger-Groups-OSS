@@ -75,7 +75,7 @@
         "fuzzyset": "^1.0.7",
         "music-metadata": "^11.12.3",
         "node-fetch": "3.3.2",
-        "p-queue": "^9.2.0",
+        "p-queue": "^9.3.3",
         "path": "^0.12.7",
         "pcm-volume": "^1.0.0",
         "play-sound": "^1.1.6",
