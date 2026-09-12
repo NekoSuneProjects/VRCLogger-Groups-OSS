@@ -12,8 +12,7 @@ require("./modules/vrchat-user-public-profile.js");
 
 const {
   useVRChatAccountForRequest,
-  getConfiguredVRChatPorts,
-  getVRChatPortMappings,
+  getVRChatAccountStatus,
 } = require("./modules/vrchatnode.js");
 
 const app = express();
@@ -75,26 +74,27 @@ app.use("/v1/vrchat/calendar", VRCCalendarEndpoint);
 app.use("/v1/vrchat/prints", VRCPrintsEndpoint);
 app.use("/v1/vrchat/inventory", VRCInventoryEndpoint);
 
-const configuredPorts = process.env.PORT
-  ? [process.env.PORT]
-  : getConfiguredVRChatPorts();
-const listenPorts = [...new Set((configuredPorts.length > 0 ? configuredPorts : [config.PORT])
-  .map(port => Number.parseInt(port, 10))
-  .filter(port => Number.isInteger(port) && port > 0))];
-
-if (listenPorts.length === 0) {
-  throw new Error("No valid HTTP port configured.");
-}
-
-for (const port of listenPorts) {
-  app.listen(port, () => {
-    betterlog.ready(`Server is running on port ${port}`);
+// Status of the single VRChat logger account this backend signs in as.
+app.get("/v1/vrchat/account", (req, res) => {
+  res.contentType("application/json");
+  return res.json({
+    status: 200,
+    message: "VRChat logger account.",
+    data: getVRChatAccountStatus()
   });
+});
+
+// One HTTP port, one VRChat logger account.
+const port = Number.parseInt(process.env.PORT || config.PORT, 10);
+if (!Number.isInteger(port) || port <= 0) {
+  throw new Error("No valid HTTP port configured. Set PORT in config/config.json.");
 }
 
-for (const mapping of getVRChatPortMappings()) {
-  betterlog.ready(`VRChat account ${mapping.account} mapped to port ${mapping.port}`);
-}
+app.listen(port, () => {
+  betterlog.ready(`Server is running on port ${port}`);
+});
+
+betterlog.ready(`VRChat logger account: ${getVRChatAccountStatus().name}`);
 
 betterlog.ready("Ready");
 

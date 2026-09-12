@@ -26,21 +26,6 @@ let lastPing = new Date();
 lastPing = lastPing.getTime();
 
 const accountRequestContext = new AsyncLocalStorage();
-const portAccountMap = new Map();
-
-const normalizePorts = (ports) => {
-  if (ports === undefined || ports === null || ports === "") return [];
-
-  const rawPorts = Array.isArray(ports)
-    ? ports
-    : typeof ports === "object"
-      ? Object.values(ports)
-      : String(ports).split(",");
-
-  return rawPorts
-    .map(port => Number.parseInt(port, 10))
-    .filter(port => Number.isInteger(port) && port > 0);
-};
 
 const normalizeNonNegativeInteger = (value, fallback) => {
   const parsed = Number.parseInt(value, 10);
@@ -58,33 +43,18 @@ const formatDuration = (ms) => {
   return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
 };
 
-const getAccountPorts = (account) => {
-  return normalizePorts(account.ports ?? account.port ?? account.PORT);
-};
-
-const buildAccountConfigs = () => {
+// One VRChat account: the logger account for this group. Staff permissions are
+// handled entirely by the Discord bot and its dashboard, not here.
+const buildAccountConfig = () => {
   const vrchatConfig = config.VRChat || {};
-  const configuredAccounts = Array.isArray(vrchatConfig.accounts)
-    ? vrchatConfig.accounts
-    : [];
+  const account = vrchatConfig.account || vrchatConfig;
 
-  if (configuredAccounts.length > 0) {
-    return configuredAccounts.map((account, index) => ({
-      name: account.name || `account-${index + 1}`,
-      user: account.user,
-      pass: account.pass,
-      twofa: account.twofa,
-      ports: getAccountPorts(account)
-    }));
-  }
-
-  return [{
-    name: "default",
-    user: vrchatConfig.user,
-    pass: vrchatConfig.pass,
-    twofa: vrchatConfig.twofa,
-    ports: normalizePorts(process.env.PORT || config.PORT)
-  }];
+  return {
+    name: account.name || "logger",
+    user: account.user,
+    pass: account.pass,
+    twofa: account.twofa
+  };
 };
 
 const createClient = (account) => {
@@ -106,53 +76,23 @@ const createClient = (account) => {
   });
 };
 
-const accountContexts = buildAccountConfigs().map((account, index) => ({
-  ...account,
-  index,
+const loggerAccount = {
+  ...buildAccountConfig(),
   currentUser: null,
   authenticated: false,
   status: "pending",
-  client: createClient(account)
-}));
+  client: null
+};
+loggerAccount.client = createClient(loggerAccount);
 
 const vrchatConfig = config.VRChat || {};
-const hasMultipleConfiguredAccounts = accountContexts.length > 1;
 const loginQueueSettings = {
-  cooldownMs: normalizeNonNegativeInteger(
-    vrchatConfig.loginCooldownMs,
-    hasMultipleConfiguredAccounts ? 60000 : 0
-  ),
-  jitterMs: normalizeNonNegativeInteger(
-    vrchatConfig.loginJitterMs,
-    hasMultipleConfiguredAccounts ? 15000 : 0
-  ),
   retryCooldownMs: normalizeNonNegativeInteger(vrchatConfig.loginRetryCooldownMs, 300000),
   maxRetries: normalizeNonNegativeInteger(vrchatConfig.loginMaxRetries, 2)
 };
 
-let defaultAccountContext = accountContexts[0] || null;
-
-for (const account of accountContexts) {
-  for (const port of account.ports) {
-    if (portAccountMap.has(port)) {
-      const existing = portAccountMap.get(port);
-      betterlog.vrchatError(`VRChat port ${port} is already mapped to ${existing.name}; ignoring duplicate mapping for ${account.name}.`);
-      continue;
-    }
-    portAccountMap.set(port, account);
-  }
-}
-
-const getAccountByPort = (port) => {
-  const parsedPort = Number.parseInt(port, 10);
-  if (Number.isInteger(parsedPort) && portAccountMap.has(parsedPort)) {
-    return portAccountMap.get(parsedPort);
-  }
-  return defaultAccountContext;
-};
-
 const getActiveAccount = () => {
-  return accountRequestContext.getStore() || defaultAccountContext;
+  return accountRequestContext.getStore() || loggerAccount;
 };
 
 const getActiveClient = () => {
@@ -194,13 +134,14 @@ const getSelfInfo = async () => {
 };
 
 const useVRChatAccountForRequest = (req, res, next) => {
-  const account = getAccountByPort(req.socket?.localPort || req.connection?.localPort);
+  const account = loggerAccount;
+
   accountRequestContext.run(account, () => {
     const isStatusRoute = req.method === "GET" && req.path === "/";
-    if (!isStatusRoute && account && !account.authenticated) {
+    if (!isStatusRoute && !account.authenticated) {
       res.status(503).json({
         status: 503,
-        message: `VRChat account ${account.name} is ${account.status}. Try again after the login queue reaches this port.`,
+        message: `VRChat account ${account.name} is ${account.status}.`,
         account: account.name
       });
       return;
@@ -210,17 +151,12 @@ const useVRChatAccountForRequest = (req, res, next) => {
   });
 };
 
-const getConfiguredVRChatPorts = () => {
-  return [...portAccountMap.keys()];
-};
-
-const getVRChatPortMappings = () => {
-  return [...portAccountMap.entries()].map(([port, account]) => ({
-    port,
-    account: account.name,
-    user: account.user
-  }));
-};
+const getVRChatAccountStatus = () => ({
+  name: loggerAccount.name,
+  authenticated: Boolean(loggerAccount.authenticated),
+  status: loggerAccount.status,
+  displayName: loggerAccount.currentUser?.displayName || null
+});
 
 const authenticateAccount = async (account) => {
   try {
@@ -234,8 +170,7 @@ const authenticateAccount = async (account) => {
     }
 
     account.currentUser = authResult.data;
-    const ports = account.ports.length > 0 ? account.ports.join(", ") : "no mapped ports";
-    betterlog.vrchatLogin(`Logged in ${account.name} as ${account.currentUser.displayName} (${ports})`);
+    betterlog.vrchatLogin(`Logged in ${account.name} as ${account.currentUser.displayName}`);
 
     const tokenResp = await account.client.verifyAuthToken({ throwOnError: true });
     const authToken = tokenResp?.data?.token;
@@ -261,11 +196,6 @@ const authenticateAccount = async (account) => {
   }
 };
 
-const getJitterMs = () => {
-  if (loginQueueSettings.jitterMs <= 0) return 0;
-  return Math.floor(Math.random() * loginQueueSettings.jitterMs);
-};
-
 const waitBeforeLogin = async (account, waitMs, reason) => {
   if (waitMs <= 0) return;
   account.status = "waiting";
@@ -280,7 +210,7 @@ const authenticateAccountWithRetry = async (account) => {
     if (attempt > 1) {
       await waitBeforeLogin(
         account,
-        loginQueueSettings.retryCooldownMs + getJitterMs(),
+        loginQueueSettings.retryCooldownMs,
         `retry ${attempt}/${totalAttempts}`
       );
     }
@@ -301,26 +231,12 @@ const authenticateAccountWithRetry = async (account) => {
 
 //CONNECTION CODE
 (async () => {
-  if (accountContexts.length === 0) {
-    betterlog.vrchatError("No VRChat accounts configured.");
+  if (!loggerAccount.user || !loggerAccount.pass) {
+    betterlog.vrchatError("No VRChat logger account configured. Set VRChat.account in config/config.json.");
     return;
   }
 
-  if (hasMultipleConfiguredAccounts) {
-    betterlog.vrchatLogin(`VRChat login queue active for ${accountContexts.length} accounts. Cooldown: ${formatDuration(loginQueueSettings.cooldownMs)}, jitter: ${formatDuration(loginQueueSettings.jitterMs)}.`);
-  }
-
-  for (const [index, account] of accountContexts.entries()) {
-    if (index > 0) {
-      await waitBeforeLogin(
-        account,
-        loginQueueSettings.cooldownMs + getJitterMs(),
-        "login"
-      );
-    }
-
-    await authenticateAccountWithRetry(account);
-  }
+  await authenticateAccountWithRetry(loggerAccount);
 })();
 
 // HANDLING A RECIEVED MESSAGE
@@ -2081,8 +1997,7 @@ async function SearchUserAvatar(userId) {
 
 module.exports = {
   useVRChatAccountForRequest,
-  getConfiguredVRChatPorts,
-  getVRChatPortMappings,
+  getVRChatAccountStatus,
   SendGroupMessage,
   GetUsers,
   GetSelf,
