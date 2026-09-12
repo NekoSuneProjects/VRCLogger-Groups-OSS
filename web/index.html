@@ -365,7 +365,7 @@
         </div>
     </div>
     <footer class="text-center mt-5">
-        <h2>Copyright © 2025 NekoSuneProjects (Former VRChat Guardian Angel & Project Dark Star)</h2>
+        <h2>Copyright © 2024 - 2026 NekoSuneProjects (Former VRChat Guardian Angel & Project Dark Star)</h2>
     </footer>
     <!-- Scripts -->
     <!-- Load JS dependencies -->
@@ -805,12 +805,9 @@
         function getInitialVrcLoggerApiConfig(savedConfig) {
             const legacyApiKeys = savedConfig.ApiKeys || {};
             const current = savedConfig.VRCLoggerApi || {};
-            const legacyApiKey =
-                isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check)
-                    ? legacyApiKeys.Auto_Mod_Check
-                    : isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check_Global)
-                        ? legacyApiKeys.Auto_Mod_Check_Global
-                        : "";
+            const legacyApiKey = isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check)
+                ? legacyApiKeys.Auto_Mod_Check
+                : "";
 
             return {
                 dashboardBaseUrl: current.dashboardBaseUrl || current.dashboardEndpointUrl || legacyApiKeys.ApiEndpointUrL || "",
@@ -949,7 +946,7 @@
             apikeysOptionsDiv.innerHTML = `
             <div class="mb-3">
                 <label for="vrcLoggerDashboardBaseUrl" class="form-label">Dashboard URL</label>
-                <input type="url" class="form-control" id="vrcLoggerDashboardBaseUrl" value="${escapeHtml(vrcLoggerApiOptions.dashboardBaseUrl)}" placeholder="https://banloggerbot.nekosunevr.co.uk" onchange="updateVrcLoggerApiOptions()">
+                <input type="url" class="form-control" id="vrcLoggerDashboardBaseUrl" value="${escapeHtml(vrcLoggerApiOptions.dashboardBaseUrl)}" placeholder="https://your-dashboard.example.com" onchange="updateVrcLoggerApiOptions()">
             </div>
             <div class="mb-3">
                 <label for="vrcLoggerHeaderLine" class="form-label">API Header Line</label>
@@ -1052,9 +1049,6 @@
                 document.getElementById("toggleOptions");
             toggleOptionsDiv.innerHTML = ""; // Clear existing content
             const hiddenToggles = new Set([
-                "Mainwebhook",
-                "Authwebhook",
-                "Ohterwebhook",
                 "isEmbed",
                 "Counters",
                 "Countersavi",

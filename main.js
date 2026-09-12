@@ -344,7 +344,6 @@ async function getDefaultConfig() {
       BOSAlert: false,
       vrcx: false,
       CheckUserCache: false,
-      globaltoggle: false,
       assetslogger: true,
       AviAnalysisStats: true
     },
@@ -357,7 +356,6 @@ async function getDefaultConfig() {
     },
     ApiKeys: {
       Auto_Mod_Check: "",
-      Auto_Mod_Check_Global: "",
       ApiEndpointUrL: ""
     }
   };

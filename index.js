@@ -37,7 +37,6 @@ async function initializeConfig() {
       TTSAutoMod: await getConfig("Toggle.TTSAutoMod"),
       BOSAlert: await getConfig("Toggle.BOSAlert"),
       vrcx: await getConfig("Toggle.vrcx"),
-      globaltoggle: await getConfig("Toggle.globaltoggle"),
       assetslogger: await getConfig("Toggle.assetslogger"),
       AviAnalysisStats: await getConfig("Toggle.AviAnalysisStats")
     },
@@ -116,8 +115,6 @@ const { APICount } = require("./APIClient/APICount.js");
 
 const { removetwobrackets } = require("./Splitlogjsonpart/index.js");
 
-// webhook send data it
-const { sendToWebhook } = require("./webhook/index.js");
 
 const {
   vrchatcheckUserConnectionleft,
@@ -299,7 +296,6 @@ async function monitorAndSend() {
                 "info",
                 "joinleavelog"
               );
-              sendToWebhook(logParts.join(" "));
             } else if (log.includes("[Always] Instance closed:")) {
               const logParts = log.split(" ").filter(part => part !== "");
               logParts.splice(logParts.indexOf("[Always]"), 1);
@@ -314,7 +310,6 @@ async function monitorAndSend() {
 
               main.log(logParts.join(" "), "info", "joinleavelog");
 
-              sendToWebhook(formattedLogMessage);
             } else if (log.includes("ModerationManager")) {
               const logRegex = /(?:\[ModerationManager\]\W-?\W?)([\S]+)(?:\W-\W)?(?:is no longer Muted|avatar is enabled|is now Blocked|Requesting block on|has been (warned|kicked)(?:\Wby\W([\S]+))?)/;
               const voteKickMatch = log.match(
@@ -354,7 +349,6 @@ async function monitorAndSend() {
               if (formattedLogMessage) {
                 ModClass.writeModerationToFile(formattedLogMessage);
                 main.log(formattedLogMessage, "info", "modlog");
-                sendToWebhook(formattedLogMessage);
               }
             } else if (log.includes("VRC.Udon.VM.UdonVMException")) {
               //used for see if any errors are thrown from a client user
@@ -362,7 +356,6 @@ async function monitorAndSend() {
               const logParts = log.split(" ").filter(part => part !== "");
               logParts.splice(logParts.indexOf("[Behaviour]"), 1);
               main.log(logParts.join(" "), "info", "modlog");
-              sendToWebhook(logParts.join(" "));
             } else if (log.includes("USharpVideo")) {
               const logParts = log.split(" ").filter(part => part !== "");
               if (PrivacyandSafety.ipgrabber == true) {
@@ -372,7 +365,6 @@ async function monitorAndSend() {
                 logParts.splice(logParts.indexOf("[Behaviour]"), 1);
               }
               main.log(logParts.join(" "), "info", "modlog");
-              sendToWebhook(logParts.join(" "));
             } else if (log.includes("Video Playback")) {
               const logParts = log.split(" ").filter(part => part !== "");
               if (PrivacyandSafety.ipgrabber == true) {
@@ -382,7 +374,6 @@ async function monitorAndSend() {
                 logParts.splice(logParts.indexOf("[Behaviour]"), 1);
               }
               main.log(logParts.join(" "), "info", "modlog");
-              sendToWebhook(logParts.join(" "));
             } else if (log.includes("[StickersManager] ")) {
               // VRChat has logged sticker spawns as both file_... and inv_... ids.
               if (toggle.assetslogger == true) {
@@ -404,7 +395,6 @@ async function monitorAndSend() {
 
                   ModClass.writeModerationToFile(formattedLogMessage);
                   main.log(formattedLogMessage, "info", "modlog");
-                  sendToWebhook(formattedLogMessage);
                 }
               }
             } else if (log.includes("[API] Requesting Get prints/")) {
@@ -420,7 +410,6 @@ async function monitorAndSend() {
 
                   ModClass.writeModerationToFile(formattedLogMessage);
                   main.log(formattedLogMessage, "info", "modlog");
-                  sendToWebhook(formattedLogMessage);
                 }
               }
             } else if (
@@ -475,7 +464,6 @@ async function monitorAndSend() {
                 const formattedLogMessageediut = `<t:${timestamp}:f> ${jsonObject}`;
                 UIPageShown.writeModerationToFile(formattedLogMessageediut);
                 main.log(jsonObject, "info", "uivrchatlog");
-                sendToWebhook(formattedLogMessage);
               } else if (log.includes("OnPlayerJoined")) {
                 const logParts = log.split(" ").filter(part => part !== "");
                 logParts.splice(logParts.indexOf("[Behaviour]"), 1);
@@ -532,7 +520,6 @@ async function monitorAndSend() {
                 PlayerClass.writeplayerToFile(formattedLogMessage);
 
                 main.log(logParts.join(" "), "info", "joinleavelog");
-                sendToWebhook(logParts.join(" "));
               } else if (log.includes("OnPlayerLeft")) {
                 const logParts = log.split(" ").filter(part => part !== "");
                 logParts.splice(logParts.indexOf("[Behaviour]"), 1);
@@ -587,7 +574,6 @@ async function monitorAndSend() {
                 PlayerClass.writeplayerToFile(formattedLogMessage);
 
                 main.log(logParts.join(" "), "info", "joinleavelog");
-                sendToWebhook(logParts.join(" "));
               } else if (log.includes("Destroying")) {
                 PlayerClass.writeplayerToFile(
                   `<t:${timestamp}:f> ${logParts.join(" ")}`
@@ -620,7 +606,6 @@ async function monitorAndSend() {
                   formattedLogMessage
                 );
                 main.log(logParts.join(" "), "info", "modlog");
-                sendToWebhook(logParts.join(" "));
               } else if (
                 log.includes(
                   "Event: Received executive message: You have been kicked from the instance"
@@ -628,7 +613,6 @@ async function monitorAndSend() {
               ) {
                 const logParts = log.split(" ").filter(part => part !== "");
                 main.log(logParts.join(" "), "info", "joinleavelog");
-                sendToWebhook(logParts.join(" "));
               } else if (log.includes("Switching ")) {
                 const logParts = log.split(" ").filter(part => part !== "");
                 logParts.splice(logParts.indexOf("[Behaviour]"), 1);
@@ -647,7 +631,6 @@ async function monitorAndSend() {
                     timestamp
                   )}:f> vrchat log - user ${username} Switching to ${avatarneedName}`;
 
-                  sendToWebhook(formattedLogMessage);
                   AVISwitchingClass.writeModerationToFile(formattedLogMessage);
                   if (toggle.AviSwitch == true) {
                     main.log(
@@ -697,7 +680,6 @@ async function monitorAndSend() {
                       formattedLogMessage = `<t:${Math.round(
                         timestamp
                       )}:f> You have joined [WORLD URL](https://vrchat.com/home/launch?worldId=${locationParts.worldId}&instanceId=${locationParts.instanceInfo})`;
-                      sendToWebhook(formattedLogMessage);
                   } else {
                     main.log(
                       `Error: Unable to extract world ID and instance info`,

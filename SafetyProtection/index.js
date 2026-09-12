@@ -1,4 +1,3 @@
-const { sendToWebhook } = require("../webhook/index.js");
 const main = require("../main.js");
 const { fetchDashboardPublicJson } = require("../functions/vrcLoggerApiClient");
 
@@ -77,15 +76,6 @@ function createAlertMessage(displayName, domain) {
   return `vrchat log - ${currentDate} [HIGH ALERT] - [IP-GRABBER] Warning: ${actor} used an IP grabber domain (${domain}) in the world!`;
 }
 
-function createWebhookMessage(alertMessage) {
-  const timestamp = Math.round(Date.now() / 1000);
-
-  return `<t:${timestamp}:f> ${alertMessage.replace(
-    "[HIGH ALERT]",
-    '"[HIGH ALERT]"'
-  )}`;
-}
-
 async function IpGrabbedAlert(log) {
   try {
     const domain = extractDomainFromLog(log);
@@ -101,7 +91,6 @@ async function IpGrabbedAlert(log) {
 
     const alertMessage = createAlertMessage(extractRequestedBy(log), domain);
     main.log(alertMessage, "info", "modlog");
-    await sendToWebhook(createWebhookMessage(alertMessage));
   } catch (err) {
     console.error(`Error in IpGrabbedAlert: ${err.message}`);
   }

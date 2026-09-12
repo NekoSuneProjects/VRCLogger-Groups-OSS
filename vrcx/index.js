@@ -2,7 +2,6 @@ const fs = require("fs");
 const getConfig = require("../functions/getConfig"); // Import the getConfig function
 const FuzzySet = require("fuzzyset");
 const { LOGSCLASS, PlayerClass } = require("../Configfiles/logsclass.js");
-const { sendToWebhook } = require("../webhook/index.js");
 const { Sequelize } = require("sequelize");
 const sqlite3 = require("sqlite3");
 const main = require("../main");
@@ -12,20 +11,17 @@ const { upsertUserCache } = require("../functions/localUserCache");
 
 // vrcga blacklist
 const {
-  blacklistvrcgajoined,
-  blacklistvrcgajoinedGlobal
+  blacklistvrcgajoined
 } = require("../VRChatLogUserID/vrcga/blacklist/index.js");
 
 // vrcga automod
 const {
-  automoduservrcgajoined,
-  automoduservrcgajoinedGlobal
+  automoduservrcgajoined
 } = require("../VRChatLogUserID/vrcga/automod/index.js");
 
 // vrcga usercache
 const {
-  usercacheuservrcgajoined,
-  usercacheuservrcgajoinedGlobal
+  usercacheuservrcgajoined
 } = require("../VRChatLogUserID/vrcga/usercache/index.js");
 
 async function initializeConfig() {
@@ -39,7 +35,6 @@ async function initializeConfig() {
       VRNotify: await getConfig("Toggle.VRNotify"),
       CheckAutoMod: await getConfig("Toggle.CheckAutoMod"),
       CheckUser: await getConfig("Toggle.CheckUser"),
-      globaltoggle: await getConfig("Toggle.globaltoggle"),
     },
   };
   return Config;
@@ -88,12 +83,6 @@ async function checkUserConnection(cleanedString) {
         blacklistvrcgajoined(displayName, userId);
         automoduservrcgajoined(displayName, userId);
         usercacheuservrcgajoined(displayName, userId);
-
-        if (Config.Toggle.globaltoggle) {
-          blacklistvrcgajoinedGlobal(displayName, userId);
-          automoduservrcgajoinedGlobal(displayName, userId);
-          usercacheuservrcgajoinedGlobal(displayName, userId);
-        }
 
         if (userId) {
           const userIdString = userId.toString(); // Keep userId as string
@@ -168,7 +157,6 @@ async function checkUserConnectionleft(cleanedString) {
 
         const message = `vrcx - ${displayName} and ${userId} disconnected`;
 
-        sendToWebhook(message);
       });
     }
   } catch (error) {

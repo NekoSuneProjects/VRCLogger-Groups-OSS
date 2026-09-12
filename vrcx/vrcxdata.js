@@ -47,7 +47,7 @@ async function vrcxdata() {
     function handleData(data) {
       if (data.error) {
         main.log(`vrcx - Warning there is no data`, "info", "joinleavelog");
-        return; // or send a message to the webhook saying the user is not found
+        return;
       }
       main.log(
         `vrcx data - ${JSON.stringify(data.data, null, 2)}`,

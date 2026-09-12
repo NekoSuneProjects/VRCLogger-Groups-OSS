@@ -1,28 +1,19 @@
 const fs = require("fs");
 const { PlayerClass } = require("../Configfiles/logsclass.js");
-const { sendToWebhook } = require("../webhook/index.js");
 const main = require("../main");
 const { upsertUserCache } = require("../functions/localUserCache");
+const { resolveUserByDisplayName } = require("../functions/vrcLoggerApiClient");
 
 // vrcga checkuser
-const getConfig = require("../functions/getConfig"); // Import the getConfig function
 
-async function initializeConfig() {
-  const Config = {
-    Toggle: {
-      globaltoggle: await getConfig("Toggle.globaltoggle")
-    }
-  };
-  return Config;
-}
 // vrcga blacklist
-const { blacklistvrcgajoined, blacklistvrcgajoinedGlobal } = require("./vrcga/blacklist/index.js");
+const { blacklistvrcgajoined } = require("./vrcga/blacklist/index.js");
 
 // vrcga automod
-const { automoduservrcgajoined, automoduservrcgajoinedGlobal } = require("./vrcga/automod/index.js");
+const { automoduservrcgajoined } = require("./vrcga/automod/index.js");
 
 // vrcga usercache
-const { usercacheuservrcgajoined, usercacheuservrcgajoinedGlobal } = require("./vrcga/usercache/index.js");
+const { usercacheuservrcgajoined } = require("./vrcga/usercache/index.js");
 
 const Bottleneck = require("bottleneck");
 
@@ -31,11 +22,37 @@ const limiter = new Bottleneck({
   minTime: 500, // Minimum 500ms between requests
 });
 
+// Some VRChat log lines carry a display name but no user id. Ask the dashboard's
+// group member cache, which also matches names the user has since changed away
+// from, so a rename does not lose the identity.
+async function resolveMissingUserId(displayName) {
+  try {
+    const match = await resolveUserByDisplayName(displayName);
+    if (!match?.userId) return null;
+
+    if (match.historical) {
+      main.log(
+        `Resolved "${displayName}" to ${match.userId} via a previous display name (now "${match.displayName}")`,
+        "info",
+        "joinleavelog"
+      );
+    }
+    return match.userId;
+  } catch (error) {
+    main.log(`Name lookup failed for "${displayName}": ${error.message}`, "info", "joinleavelog");
+    return null;
+  }
+}
+
 async function vrchatcheckUserConnection(displayname, cleanUser) {
   return limiter.schedule(async () => {
-    const Config = await initializeConfig(); // Fetch config settings from the database
     const displayName = displayname;
-    const userId = cleanUser;
+    let userId = cleanUser;
+
+    if (!userId || userId === "unknown") {
+      userId = (await resolveMissingUserId(displayName)) || userId;
+    }
+
     await upsertUserCache({ userId, displayName });
 
     const timestamp = Date.now() / 1000;
@@ -48,12 +65,6 @@ async function vrchatcheckUserConnection(displayname, cleanUser) {
     blacklistvrcgajoined(displayName, userId);
     automoduservrcgajoined(displayName, userId);
     usercacheuservrcgajoined(displayName, userId);
-
-    if (Config.Toggle.globaltoggle) {
-      blacklistvrcgajoinedGlobal(displayName, userId);
-      automoduservrcgajoinedGlobal(displayName, userId);
-      usercacheuservrcgajoinedGlobal(displayName, userId);
-    }
   });
 }
 
@@ -76,7 +87,6 @@ async function vrchatcheckUserConnectionleft(displayname, cleanUser) {
 
   const message = `vrchat logs - ${displayName} and ${userId} disconnected`;
 
-  sendToWebhook(message);
 }
 
 module.exports = {

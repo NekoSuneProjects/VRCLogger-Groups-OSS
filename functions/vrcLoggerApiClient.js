@@ -2,7 +2,6 @@ const getConfig = require("./getConfig");
 const { version } = require("../package.json");
 
 const DEFAULT_HEADER_NAME = "vrclogger-api-key";
-const LEGACY_DASHBOARD_URL = "https://vrcloggerpub.nekosunevr.co.uk";
 const RETRY_STATUS_CODES = new Set([500, 502, 503, 504]);
 const DASHBOARD_ERROR_STATUS_CODES = new Set([401, 403, 404, 429]);
 
@@ -115,15 +114,11 @@ async function getVrcLoggerApiConfig(overrides = {}) {
   };
   const legacyApiKeys = {
     ApiEndpointUrL: await getConfig("ApiKeys.ApiEndpointUrL"),
-    Auto_Mod_Check: await getConfig("ApiKeys.Auto_Mod_Check"),
-    Auto_Mod_Check_Global: await getConfig("ApiKeys.Auto_Mod_Check_Global")
+    Auto_Mod_Check: await getConfig("ApiKeys.Auto_Mod_Check")
   };
-  const legacyApiKey =
-    isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check)
-      ? legacyApiKeys.Auto_Mod_Check
-      : isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check_Global)
-        ? legacyApiKeys.Auto_Mod_Check_Global
-        : "";
+  const legacyApiKey = isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check)
+    ? legacyApiKeys.Auto_Mod_Check
+    : "";
   const cleanConfiguredApi = Object.fromEntries(
     Object.entries(configuredApi).filter(([, value]) => value != null && value !== "")
   );
@@ -141,8 +136,7 @@ async function getVrcLoggerApiConfig(overrides = {}) {
   merged.dashboardBaseUrl = stripDashboardApiSuffix(
     merged.dashboardBaseUrl ||
       merged.dashboardEndpointUrl ||
-      legacyApiKeys.ApiEndpointUrL ||
-      LEGACY_DASHBOARD_URL
+      legacyApiKeys.ApiEndpointUrL
   );
   merged.groupId = String(merged.groupId || "").trim();
   if (merged.groupId && !/^grp_[\w-]+$/.test(merged.groupId)) {
@@ -154,16 +148,11 @@ async function getVrcLoggerApiConfig(overrides = {}) {
   return merged;
 }
 
+// The dashboard URL must be configured: there is no hosted fallback any more.
 function getDashboardBaseUrl(apiConfig) {
-  const dashboardBaseUrl = stripDashboardApiSuffix(
+  return stripDashboardApiSuffix(
     apiConfig && (apiConfig.dashboardBaseUrl || apiConfig.dashboardEndpointUrl)
   );
-
-  if (!dashboardBaseUrl) {
-    return LEGACY_DASHBOARD_URL;
-  }
-
-  return dashboardBaseUrl;
 }
 
 function createApiHeaders(apiConfig, extraHeaders = {}, includeApiKey = true) {
@@ -383,20 +372,72 @@ async function testDashboardConnection(overrides = {}) {
   };
 }
 
+/**
+ * Turns a display name into a stable VRChat user id using the dashboard's
+ * group member cache. Also matches names the user has since changed away from,
+ * which is what makes old log lines resolvable.
+ * Returns null when the name is unknown.
+ */
+async function resolveUserByDisplayName(displayName, options = {}) {
+  const name = String(displayName || "").trim();
+  if (!name) return null;
+
+  try {
+    return await fetchDashboardJson(
+      `/api/client/resolve-name/${encodeURIComponent(name)}`,
+      options
+    );
+  } catch (error) {
+    if (error instanceof VrcLoggerApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+/** Every display name the dashboard has seen for a user, oldest first. */
+async function fetchKnownDisplayNames(userId, options = {}) {
+  const id = String(userId || "").trim();
+  if (!id) return [];
+
+  try {
+    const payload = await fetchDashboardJson(
+      `/api/client/names/${encodeURIComponent(id)}`,
+      options
+    );
+    return Array.isArray(payload?.knownNames) ? payload.knownNames : [];
+  } catch (error) {
+    if (error instanceof VrcLoggerApiError && error.status === 404) return [];
+    throw error;
+  }
+}
+
+/** Cached members of the tracked VRChat group, including those who left. */
+async function fetchGroupMembers(query = {}, options = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return fetchDashboardJson(`/api/client/members${suffix}`, options);
+}
+
 module.exports = {
   DEFAULT_HEADER_NAME,
-  LEGACY_DASHBOARD_URL,
   VrcLoggerApiError,
   buildApiUrl,
   createApiHeaders,
   fetchApiJson,
   fetchDashboardJson,
   fetchDashboardPublicJson,
+  fetchGroupMembers,
+  fetchKnownDisplayNames,
   fetchWithRetry,
   getDashboardBaseUrl,
   getVrcLoggerApiConfig,
   hasApiKey,
   maskApiKey,
   parseApiHeaderLine,
+  resolveUserByDisplayName,
   testDashboardConnection
 };

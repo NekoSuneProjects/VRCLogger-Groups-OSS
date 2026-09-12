@@ -8,7 +8,7 @@ permissions:
 on:
   push:
     branches:
-      - Client_RELEASE
+      - client
 
 jobs:
   build-and-upload-windows:

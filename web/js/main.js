@@ -274,12 +274,9 @@ function isConfiguredApiKey(apiKey) {
 function getInitialVrcLoggerApiConfig(savedConfig) {
   const legacyApiKeys = savedConfig.ApiKeys || {};
   const current = savedConfig.VRCLoggerApi || {};
-  const legacyApiKey =
-    isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check)
-      ? legacyApiKeys.Auto_Mod_Check
-      : isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check_Global)
-        ? legacyApiKeys.Auto_Mod_Check_Global
-        : "";
+  const legacyApiKey = isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check)
+    ? legacyApiKeys.Auto_Mod_Check
+    : "";
 
   return {
     dashboardBaseUrl: current.dashboardBaseUrl || current.dashboardEndpointUrl || legacyApiKeys.ApiEndpointUrL || "",
@@ -410,7 +407,7 @@ function renderVrcLoggerApiOptions() {
   <label for="vrcLoggerDashboardBaseUrl" class="form-label">Dashboard URL</label>
   <input type="url" class="form-control" id="vrcLoggerDashboardBaseUrl" value="${escapeHtml(
     vrcLoggerApiOptions.dashboardBaseUrl
-  )}" placeholder="https://banloggerbot.nekosunevr.co.uk" onchange="updateVrcLoggerApiOptions()">
+  )}" placeholder="https://your-dashboard.example.com" onchange="updateVrcLoggerApiOptions()">
 </div>
 <div class="mb-3">
   <label for="vrcLoggerHeaderLine" class="form-label">API Header Line</label>
@@ -583,9 +580,6 @@ function renderToggleOptions() {
   const toggleOptionsDiv = document.getElementById("toggleOptions");
   toggleOptionsDiv.innerHTML = ""; // Clear existing content
   const hiddenToggles = new Set([
-    "Mainwebhook",
-    "Authwebhook",
-    "Ohterwebhook",
     "isEmbed",
     "Counters",
     "Countersavi",
