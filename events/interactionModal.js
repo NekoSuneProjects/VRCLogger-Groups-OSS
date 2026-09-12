@@ -42,7 +42,7 @@ async function ensureBanReportCacheModel (db) {
 module.exports = (client, runtimeState = {}) => {
   const config = client.config || {}
   const profileGuildId = String(config?.TestingServerID || '')
-  const api = createVrchatApi(config)
+  const api = createVrchatApi(config, runtimeState.db)
   async function safeReplyEphemeral (interaction, payload) {
     try {
       if (interaction.deferred || interaction.replied) {

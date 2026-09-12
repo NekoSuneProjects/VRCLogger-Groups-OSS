@@ -50,7 +50,7 @@ module.exports = {
       });
     }
 
-    const api = createVrchatApi(client.config || {});
+    const api = createVrchatApi(client.config || {}, client.state?.db);
 
     try {
       const json = await api.GetUsersAPI(atuser);

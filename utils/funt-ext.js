@@ -22,7 +22,7 @@ const { initGlobalAnalytics, mapActionToMetric } = require('../lib/globalAnalyti
 // initializer: wire everything up for a specific client instance
 module.exports = function initFunExt (client, profile) {
   const cfg = profile?.config || client.config || {}
-  const api = createVrchatApi(cfg)
+  const api = createVrchatApi(cfg, db)
   const db = profile?.db || client.state?.db || {}
   const analyticsStorePromise = initGlobalAnalytics().catch(err => {
     console.error('Failed to init global analytics store:', err.message)

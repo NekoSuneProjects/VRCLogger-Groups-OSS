@@ -181,7 +181,7 @@ module.exports = {
 
       let api = null
       try {
-        api = createVrchatApi(client.config)
+        api = createVrchatApi(client.config, client.state?.db)
       } catch {}
 
       const resolvedGroupName = await resolveGroupName(

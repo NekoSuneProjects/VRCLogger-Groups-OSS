@@ -4,6 +4,8 @@ const { version: discordjsVersion, ActivityType } = require("discord.js");
 
 // pull a lazy models accessor (initialized by interactionModal initializer)
 const initFunExt = require("../utils/funt-ext.js");
+const { createVrchatApi } = require("../utils/vrchat.js");
+const { startGroupCache } = require("../lib/groupCache.js");
 
 module.exports = (client) => {
   client.on("ready", async () => {
@@ -12,6 +14,19 @@ module.exports = (client) => {
     const profile = client.state?.profile || { config: cfg, db: client.state?.db };
 
     initFunExt(client, profile);
+
+    // Group + member cache keeps old display names resolvable after renames.
+    try {
+      const api = createVrchatApi(profile.config, profile.db);
+      client.state.groupCache = startGroupCache({
+        api,
+        db: profile.db,
+        config: profile.config,
+        intervalMs: Number(cfg.VRCAPI?.groupCacheIntervalMs) || 15 * 60 * 1000
+      });
+    } catch (err) {
+      console.error("Failed to start group cache:", err.message);
+    }
 
     let blCount = 0;
     let aviCount = 0;

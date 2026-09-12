@@ -5,7 +5,7 @@ const fetch = require("node-fetch");
  * Factory that builds API helpers using the provided config.
  * Usage: const api = createVrchatApi(client.config);
  */
-function createVrchatApi(config) {
+function createVrchatApi(config, db = null) {
   if (!config?.VRCAPI?.VRCBackEndURL) {
     throw new Error("VRCBackEndURL missing in config.VRCAPI");
   }
@@ -49,6 +49,7 @@ function createVrchatApi(config) {
   // NOTE: your original path had "getuditlogs" – keep as-is if the backend expects that typo.
   const GetGroupAuditLog = (groupid, groupname) => post("/v1/vrchat/groups/moderation/getauditlogs", { groupid, groupname }, { "Content-Type": "application/json" });
   const GetGroupInfo = (groupid) => post("/v1/vrchat/groups/getgroup", { groupid }, { "Content-Type": "application/json" });
+  const GetGroupMembers = (groupid, groupname) => post("/v1/vrchat/groups/moderation/getgroupmembers", { groupid, groupname }, { "Content-Type": "application/json" });
   const GroupMessages = (payload = {}) => post("/v1/vrchat/groups/messages", payload, { "Content-Type": "application/json" });
   const GroupModeration = (payload = {}) => post("/v1/vrchat/groups/moderation", payload, { "Content-Type": "application/json" });
   const GroupInvite = (payload = {}) => post("/v1/vrchat/groups/invite", payload, { "Content-Type": "application/json" });
@@ -145,130 +146,30 @@ function createVrchatApi(config) {
     return post("/v1/vrchat/users/search/usergroups", { userid }, { "Content-Type": "application/json" });
   }
 
-  async function fetchAllGroupLists() {
-    const baseUrl = "https://vrcloggerpub.nekosunevr.co.uk/v5/games/api/vrchat/yoinker";
-
-    const groupUrls = [
-      { url: `${baseUrl}/groupslist`, provider: "globalbanlogger" },
-      { url: `${baseUrl}/WTH/groupslist`, provider: "wth" },
-      { url: `${baseUrl}/NEKOLOGGER/groupslist`, provider: "nekosunecommunity" },
-      { url: `${baseUrl}/NS/groupslist`, provider: "nekostudios" },
-      { url: `${baseUrl}/EH/groupslist`, provider: "ehcommunityoasis" },
-    ];
-
-    try {
-      const resps = await Promise.all(groupUrls.map(async g => {
-        try {
-          const res = await fetch(g.url, { method: "GET", headers: { "Content-Type": "application/json" } });
-          if (!res.ok) return { provider: g.provider, data: [] };
-          const json = await res.json();
-          return { provider: g.provider, data: json };
-        } catch (err) {
-          return { provider: g.provider, data: [] };
-        }
-      }));
-
-      return resps; // <-- raw results, used by both blacklist & watchlist builders
-    } catch (err) {
-      throw new Error(err.message || "Failed to fetch group lists");
-    }
+  // Flagged-group lists come from this bot's own blacklist table.
+  // Earlier builds federated them from a hosted public API; that is gone.
+  async function fetchGroupListByTypes(types) {
+    const model = db?.VRCBlacklistGroups;
+    if (!model) return [];
+    const rows = await model.findAll({ where: { type: types, archived: false } }).catch(() => []);
+    return (rows || []).map(row => {
+      const plain = typeof row?.get === 'function' ? row.get({ plain: true }) : row;
+      return { ...plain, groupID: plain.groupID || plain.groupId || plain.id };
+    });
   }
 
-  async function fetchBlacklist() {
-    try {
-      const groups = await fetchAllGroupLists();
-
-      const blacklist = groups.flatMap(({ provider, data }) =>
-        Object.values(data || {})
-          .flat()
-          .filter(entry => ["MALICIOUS", "NUISANCE"].includes(entry.type))
-          .map(entry => ({ ...entry, provider }))
-      );
-
-      return {
-        status: 200,
-        message: "Blacklist fetched.",
-        data: blacklist,
-      };
-    } catch (err) {
-      return {
-        status: 500,
-        message: err.message || "Failed to fetch blacklist.",
-      };
-    }
+  function listResult(message, data) {
+    return { status: 200, message, data };
   }
 
-  async function fetchWatchlist() {
-    try {
-      const groups = await fetchAllGroupLists();
-
-      const watchlist = groups.flatMap(({ provider, data }) =>
-        Object.values(data || {})
-          .flat()
-          .filter(entry => entry.type === "WATCHLIST")
-          .map(entry => ({ ...entry, provider }))
-      );
-
-      return {
-        status: 200,
-        message: "Watchlist fetched.",
-        data: watchlist,
-      };
-    } catch (err) {
-      return {
-        status: 500,
-        message: err.message || "Failed to fetch watchlist.",
-      };
-    }
-  }
-
-  async function fetchCommunityList() {
-    try {
-      const groups = await fetchAllGroupLists();
-
-      const community = groups.flatMap(({ provider, data }) =>
-        Object.values(data || {})
-          .flat()
-          .filter(entry => entry.type === "COMMUNITY")
-          .map(entry => ({ ...entry, provider }))
-      );
-
-      return {
-        status: 200,
-        message: "Community list fetched.",
-        data: community,
-      };
-    } catch (err) {
-      return {
-        status: 500,
-        message: err.message || "Failed to fetch community list.",
-      };
-    }
-  }
-
-  async function fetchAffiliatedList() {
-    try {
-      const groups = await fetchAllGroupLists();
-
-      const affiliated = groups.flatMap(({ provider, data }) =>
-        Object.values(data || {})
-          .flat()
-          .filter(entry => entry.type === "AFFILIATED")
-          .map(entry => ({ ...entry, provider }))
-      );
-
-      return {
-        status: 200,
-        message: "Affiliated list fetched.",
-        data: affiliated,
-      };
-    } catch (err) {
-      return {
-        status: 500,
-        message: err.message || "Failed to fetch affiliated list.",
-      };
-    }
-  }
+  const fetchBlacklist = async () =>
+    listResult('Blacklist fetched.', await fetchGroupListByTypes(['MALICIOUS', 'NUISANCE']));
+  const fetchWatchlist = async () =>
+    listResult('Watchlist fetched.', await fetchGroupListByTypes(['WATCHLIST']));
+  const fetchCommunityList = async () =>
+    listResult('Community list fetched.', await fetchGroupListByTypes(['COMMUNITY']));
+  const fetchAffiliatedList = async () =>
+    listResult('Affiliated list fetched.', await fetchGroupListByTypes(['AFFILIATED']));
 
   async function GetBannedUsersGroups(userid) {
     try {
@@ -355,6 +256,7 @@ function createVrchatApi(config) {
     RespondGroupMemberRequest,
     GetGroupAuditLog,
     GetGroupInfo,
+    GetGroupMembers,
     GroupMessages,
     GroupModeration,
     GroupInvite,
