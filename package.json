@@ -87,7 +87,7 @@
         "@nekosuneprojects/vrnotications": "^1.0.2"
     },
     "devDependencies": {
-        "electron": "^42.0.0",
+        "electron": "^44.3.0",
         "electron-builder": "^26.8.1"
     }
 }
