@@ -1,448 +1,214 @@
-# BackendNode (VRCLogger BackendNode)
+# VRCLogger Backend
 
-BackendNode is a lightweight Express proxy used by VRCLogger to fetch VRChat data and expose a small, stable API surface for other services.
+A thin Express proxy in front of the VRChat API, signed in as **one VRChat
+account** — the logger account for your group.
 
-## Features
-- VRChat proxy endpoints for groups, users, worlds, and avatars
-- Group moderation logging backed by a local SQLite database
-- Optional logger webhook integration (nekowh/discord)
-
-## Requirements
-- Node.js LTS
-- One or more VRChat accounts (dummy/bot accounts recommended)
-- Optional: webhook endpoint for loggerPost
-
-## Setup
-```powershell
-npm install
-Copy-Item config\config-example.json config\config.json
-npm start
+```
+  [ this backend ] ──> VRChat API
+         ^
+         └── Discord bot + dashboard
 ```
 
-## Configuration
-Edit `config/config.json` after copying the example:
+**It stores nothing.** No database, no SQLite file, no audit-log cache. Every
+request is passed through to VRChat and the response handed straight back. All
+history and de-duplication live in the Discord bot's database.
+
+It also holds no staff data and knows nothing about Discord. Permissions,
+staff lists, and API keys are entirely the Discord bot's job.
+
+## Requirements
+
+- **Node.js 20+**
+- A **VRChat account** that is a member of your group, with a role that has the
+  moderation permissions you want to use (ban, unban, kick, view audit log,
+  manage join requests)
+- Network access to `api.vrchat.cloud`
+
+> **Use a dedicated account.** Do not use a personal VRChat account. The backend
+> keeps a long-lived session and will be logged in continuously.
+
+## Install from source
+
+```bash
+git clone <your-fork-url>
+cd VRCLogger-Groups-OSS/backend
+npm install
+```
+
+`npm install` runs a `postinstall` that pulls `betterlog.js` straight from
+GitHub (`github:NekoSuneVR/betterlog.js`), so the machine needs git and network
+access to GitHub. If that host is unreachable the install will fail here.
+
+### Configure
+
+```bash
+cp config/config-example.json config/config.json
+```
+
+Then edit `config/config.json`:
+
 ```json
 {
   "PORT": 3688,
   "VRChat": {
-    "loginCooldownMs": 60000,
-    "loginJitterMs": 15000,
     "loginRetryCooldownMs": 300000,
     "loginMaxRetries": 2,
-    "accounts": [
-      {
-        "name": "integration",
-        "user": "",
-        "pass": "",
-        "twofa": "",
-        "ports": [3688]
-      },
-      {
-        "name": "profile-verify",
-        "user": "",
-        "pass": "",
-        "twofa": "",
-        "ports": [6432]
-      }
-    ]
-  },
-  "loggerPost": {
-    "enable": true,
-    "type": "nekowh|discord",
-    "urladd": "",
-    "urlupdate": "",
-    "urlprivate": "",
-    "token": ""
+    "account": {
+      "name": "logger",
+      "user": "YOUR_VRCHAT_USERNAME",
+      "pass": "YOUR_VRCHAT_PASSWORD",
+      "twofa": "YOUR_TOTP_SECRET"
+    }
   },
   "debug": false
 }
 ```
-- `PORT`: Legacy single-account port. `process.env.PORT` overrides configured ports.
-- `VRChat.user` / `VRChat.pass`: Login for the proxy account.
-- `VRChat.twofa`: 2FA code if required.
-- `VRChat.accounts`: Optional multi-account list. When present, the process listens on each account's `ports`, and requests on that port use that account.
-- `VRChat.loginCooldownMs`: Delay between account login attempts. Defaults to `60000` when multiple accounts are configured.
-- `VRChat.loginJitterMs`: Random extra delay added to cooldowns so restarts do not always hit at the same interval.
-- `VRChat.loginRetryCooldownMs`: Delay before retrying a failed/rate-limited login.
-- `VRChat.loginMaxRetries`: Retries after the first login attempt for retryable failures such as `429` and `5xx`.
-- `loggerPost.*`: Webhook settings for outbound logging.
 
-For single-account mode, remove `VRChat.accounts` and keep using `VRChat.user`, `VRChat.pass`, `VRChat.twofa`, and `PORT`.
+| Key | Meaning |
+| --- | --- |
+| `PORT` | HTTP port to listen on. `PORT` env var overrides it. |
+| `VRChat.account.name` | Label used in logs only. |
+| `VRChat.account.user` / `.pass` | VRChat login. |
+| `VRChat.account.twofa` | TOTP **secret** (the seed, not a 6-digit code). Leave `""` if 2FA is off. |
+| `loginRetryCooldownMs` | Wait between login retries. Default 5 minutes. |
+| `loginMaxRetries` | Retries after the first attempt. Default 2. |
+| `debug` | Extra request logging. |
 
-## API Routes
-- `GET /` -> `{ "Status": "ONLINE!" }`
-- `POST /v1/vrchat/groups/messages`
-- `POST /v1/vrchat/groups/moderation`
-- `POST /v1/vrchat/groups/invite`
-- `POST /v1/vrchat/groups/role`
-- `POST /v1/vrchat/groups/search`
-- `POST /v1/vrchat/groups/getgroup`
-- `POST /v1/vrchat/groups/membership/join`
-- `POST /v1/vrchat/groups/membership/visibility`
-- `POST /v1/vrchat/groups/join`
-- `GET /v1/vrchat/groups/invites/pending`
-- `POST /v1/vrchat/groups/invites/accept`
-- `POST /v1/vrchat/groups/invites/decline`
-- `POST /v1/vrchat/groups/invites/ignore`
-- `POST /v1/vrchat/groups/posts/get`
-- `POST /v1/vrchat/users/search`
-- `POST /v1/vrchat/users/friends`
-- `GET /v1/vrchat/users/online`
-- `POST /v1/vrchat/world`
-- `POST /v1/vrchat/avatars`
-- `POST /v1/vrchat/prints/get`
-- `GET /v1/vrchat/prints/own`
-- `POST /v1/vrchat/prints/upload`
-- `POST /v1/vrchat/prints/edit`
-- `POST /v1/vrchat/prints/delete`
-- `GET /v1/vrchat/inventory`
-- `POST /v1/vrchat/inventory/get`
-- `GET /v1/vrchat/inventory/collections`
-- `GET /v1/vrchat/inventory/drops`
-- `GET /v1/vrchat/inventory/template/:inventoryTemplateId`
-- `GET /v1/vrchat/inventory/own/:inventoryItemId`
-- `GET /v1/vrchat/inventory/user/:userId/:inventoryItemId`
-- `POST /v1/vrchat/inventory/user/get`
-- `POST /v1/vrchat/inventory/consume`
-- `POST /v1/vrchat/inventory/equip`
-- `POST /v1/vrchat/inventory/unequip`
-- `POST /v1/vrchat/inventory/spawn`
-- `POST /v1/vrchat/inventory/cloning/pedestal`
-- `POST /v1/vrchat/inventory/cloning/direct`
-- `POST /v1/vrchat/inventory/update`
-- `POST /v1/vrchat/inventory/delete`
-- `POST /v1/vrchat/calendar/events`
-- `POST /v1/vrchat/calendar/events/featured`
-- `POST /v1/vrchat/calendar/events/search`
-- `POST /v1/vrchat/calendar/groups/events`
-- `POST /v1/vrchat/calendar/groups/event`
-- `GET /v1/vrchat/calendar/groups/event/ics/:groupid/:calendarid`
-- `POST /v1/vrchat/calendar/groups/event/create`
-- `POST /v1/vrchat/calendar/groups/event/update`
-- `POST /v1/vrchat/calendar/groups/event/delete`
+`config/config.json` is gitignored. Never commit credentials.
 
-## Notes
-Invite-only groups cannot be joined directly. The join endpoint returns a clear error and includes the bot identity in the response.
+### Run
 
-## Examples
-Join group (smart join, handles open/request/invite-only):
 ```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/join \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX","confirmOverrideBlock":false}'
-```
-Success response:
-```json
-{
-  "status": 200,
-  "message": "Joined group.",
-  "bot": {
-    "id": "usr_XXXX",
-    "displayName": "BotName"
-  },
-  "data": {}
-}
-```
-Invite-only response:
-```json
-{
-  "status": 403,
-  "message": "Invite only. Please invite the bot to this group.",
-  "bot": {
-    "id": "usr_XXXX",
-    "displayName": "BotName"
-  }
-}
+npm start          # installs betterlog.js, then node index.js
+# or, once dependencies are in place:
+node index.js
 ```
 
-Join group (direct join request, no join-state check):
+On start you should see the port, the logger account name, and a successful
+VRChat login. Until that login succeeds every route except `/` returns **503**.
+
+### Run as a service
+
+There is no bundled service wrapper. Any process manager works:
+
 ```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/membership/join \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX","confirmOverrideBlock":false}'
+# pm2
+pm2 start index.js --name vrclogger-backend
+
+# systemd (ExecStart)
+/usr/bin/node /opt/vrclogger/backend/index.js
 ```
 
-Set group visibility on bot profile:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/membership/visibility \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX","visibility":"hidden"}'
-```
-Visibility values: `visible`, `friends`, `hidden`.
+## Verifying it works
 
-List pending group invites:
 ```bash
-curl -sS \
-  http://localhost:3079/v1/vrchat/groups/invites/pending
-```
-Pending invites response:
-```json
-{
-  "status": 200,
-  "message": "Fetched pending group invites.",
-  "bot": {
-    "id": "usr_XXXX",
-    "displayName": "BotName"
-  },
-  "data": []
-}
+curl http://127.0.0.1:3688/
+# {"Status":"ONLINE!"}
+
+curl http://127.0.0.1:3688/v1/vrchat/account
+# {"status":200,"message":"VRChat logger account.","data":{...,"authenticated":true}}
 ```
 
-Accept/decline/ignore invite:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/invites/accept \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX"}'
+If `authenticated` is `false`, check the logs — the login is failing or still
+in its retry backoff.
 
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/invites/decline \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX"}'
+## API
 
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/invites/ignore \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX"}'
-```
-Accept response:
-```json
-{
-  "status": 200,
-  "message": "Accepted group invite.",
-  "bot": {
-    "id": "usr_XXXX",
-    "displayName": "BotName"
-  },
-  "data": {}
-}
-```
-Decline response:
-```json
-{
-  "status": 200,
-  "message": "Declined group invite.",
-  "bot": {
-    "id": "usr_XXXX",
-    "displayName": "BotName"
-  },
-  "data": {}
-}
-```
-Ignore response:
-```json
-{
-  "status": 200,
-  "message": "Declined invite and blocked future invites.",
-  "bot": {
-    "id": "usr_XXXX",
-    "displayName": "BotName"
-  },
-  "data": {}
-}
-```
+All routes are `POST` with a JSON body unless noted. Base path `/v1/vrchat`.
 
-## More Examples
-Users search:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/users/search/search \
-  -H 'Content-Type: application/json' \
-  -d '{"search":"NekoUser"}'
-```
-User by id:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/users/search/userid \
-  -H 'Content-Type: application/json' \
-  -d '{"userid":"usr_XXXX"}'
-```
-User groups:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/users/search/usergroups \
-  -H 'Content-Type: application/json' \
-  -d '{"userid":"usr_XXXX"}'
-```
-User prints:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/users/search/prints \
-  -H 'Content-Type: application/json' \
-  -d '{"printsid":"prnt_XXXX"}'
-```
+### Status
 
-Current online users:
-```bash
-curl -sS \
-  http://localhost:3079/v1/vrchat/users/online
+| Route | Method | Purpose |
+| --- | --- | --- |
+| `/` | GET | Liveness check |
+| `/v1/vrchat/account` | GET | Logger account name and login state |
+
+### Groups — moderation (`/v1/vrchat/groups/moderation`)
+
+| Route | Body | Purpose |
+| --- | --- | --- |
+| `/banmember` | `groupid, userid, groupname` | Ban a user from the group |
+| `/unbanmember` | `groupid, userid, groupname` | Remove a ban |
+| `/kickmember` | `groupid, userid, groupname` | Kick a member |
+| `/getauditlogs` | `groupid, groupname` | Group audit log, read live from VRChat |
+| `/getauditlogsold` | `groupid, groupname` | Raw audit log passthrough |
+| `/getgroupmembers` | `groupid, groupname` | Full member list (paged internally) |
+| `/getmemberrequests` | `groupid, groupname` | Pending join requests |
+| `/requestjoingroup` | `groupid, userid, action, groupname` | Accept/reject a join request |
+| `/postmemberrequests` | `groupid, userId, action, block, groupname` | Respond to a member request |
+
+`/getgroupmembers` is what powers the bot's member cache and display-name
+history, so leave it enabled.
+
+### Groups — other
+
+| Base | Purpose |
+| --- | --- |
+| `/v1/vrchat/groups` | Group lookup (`/getgroup`) |
+| `/v1/vrchat/groups/messages` | Group announcements |
+| `/v1/vrchat/groups/invite` | Send group invites |
+| `/v1/vrchat/groups/invites` | Pending invites: accept / decline / ignore |
+| `/v1/vrchat/groups/join` | Join a group |
+| `/v1/vrchat/groups/membership` | Membership + visibility (used to force `hidden`) |
+| `/v1/vrchat/groups/role` | Group roles |
+| `/v1/vrchat/groups/search` | Group search |
+| `/v1/vrchat/groups/posts` | Group posts |
+
+### Users, worlds, avatars, misc
+
+| Base | Purpose |
+| --- | --- |
+| `/v1/vrchat/users/search` | User lookup by id, and a user's groups |
+| `/v1/vrchat/users/friends` | Friend list |
+| `/v1/vrchat/users/online` | Online state |
+| `/v1/vrchat/world` | World and instance lookup |
+| `/v1/vrchat/avatars` | Avatar lookup and analysis |
+| `/v1/vrchat/calendar` | Group events / calendar |
+| `/v1/vrchat/prints` | Prints |
+| `/v1/vrchat/inventory` | Inventory (stickers etc.) |
+
+## Security
+
+This backend has **no authentication**. Anything that can reach the port can act
+as your VRChat logger account.
+
+- Bind it to localhost, or keep it on a private network
+- Do not expose it to the internet
+- If the bot runs on another host, use a firewall rule, VPN, or an
+  authenticating reverse proxy in front
+
+## Project layout
+
+```
+backend/
+├── index.js                 # app, route mounting, listen
+├── config.js                # config loader
+├── dependencies.js          # shared requires (express, cors, betterlog, ...)
+├── config/
+│   ├── config-example.json  # template — copy to config.json
+│   └── config.json          # your config (gitignored)
+├── endpoints/               # one router per API area
+│   ├── Groups/ Users/ Worlds/ Avatars/ Calendar/ Prints/ Inventory/
+└── modules/
+    ├── vrchatnode.js                   # VRChat client, login, all API calls
+    └── vrchat-user-public-profile.js   # getUser() extension
 ```
 
-Friends:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/users/friends/sendfriendreq \
-  -H 'Content-Type: application/json' \
-  -d '{"userid":"usr_XXXX"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/users/friends/getfriendstatus \
-  -H 'Content-Type: application/json' \
-  -d '{"userid":"usr_XXXX"}'
-```
+## Troubleshooting
 
-Worlds:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/world/worldid \
-  -H 'Content-Type: application/json' \
-  -d '{"worldid":"wrld_XXXX"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/world/worldInstance \
-  -H 'Content-Type: application/json' \
-  -d '{"worldId":"wrld_XXXX","instanceId":"12345"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/world/search \
-  -H 'Content-Type: application/json' \
-  -d '{"search":"Neko"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/world/searchusers \
-  -H 'Content-Type: application/json' \
-  -d '{"search":"usr_XXXX"}'
-```
+**Every route returns 503** — the VRChat login has not succeeded. Check the logs
+for the failure and confirm username, password, and TOTP secret.
 
-Avatars:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/avatars/analysis \
-  -H 'Content-Type: application/json' \
-  -d '{"fileId":"file_XXXX","fileVersion":1}'
-```
-```bash
-curl -sS \
-  http://localhost:3079/v1/vrchat/avatars/useravatars/usr_XXXX
-```
+**`npm install` fails on betterlog.js** — the `postinstall` fetches it from
+GitHub. Check git and GitHub access on the machine.
 
-Group messages:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/messages/sendmessage \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX","title":"Notice","text":"Hello","bool":true,"groupname":"MyGroup"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/messages/getmessage \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX","groupname":"MyGroup"}'
-```
+**Login fails with 2FA errors** — `twofa` must be the TOTP *secret* (the long
+seed you get when enabling 2FA), not a current 6-digit code.
 
-Group moderation:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/moderation/getauditlogs \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX","groupname":"MyGroup"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/moderation/banmember \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX","userid":"usr_XXXX","groupname":"MyGroup"}'
-```
+**Rate limiting** — VRChat throttles aggressively. The backend has a built-in
+throttle, but if you see 429s, increase the bot's `VRCAPI.groupCacheIntervalMs`
+and avoid hammering the audit-log route.
 
-Group invite (invite a user):
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/invite/invitemember/grp_XXXX \
-  -H 'Content-Type: application/json' \
-  -d '{"userid":"usr_XXXX","groupname":"MyGroup"}'
-```
-
-Group roles:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/role/add/grp_XXXX \
-  -H 'Content-Type: application/json' \
-  -d '{"userId":"usr_XXXX","groupRoleId":"grprole_XXXX","groupname":"MyGroup"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/role/get/grp_XXXX \
-  -H 'Content-Type: application/json' \
-  -d '{"groupname":"MyGroup"}'
-```
-
-Group search:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/search/NekoGroup \
-  -H 'Content-Type: application/json' \
-  -d '{"groupname":"NekoGroup"}'
-```
-
-Group get by id:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/getgroup \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX"}'
-```
-
-Group posts (list):
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/groups/posts/get \
-  -H 'Content-Type: application/json' \
-  -d '{"groupid":"grp_XXXX","n":50,"offset":0,"publicOnly":true}'
-```
-
-Prints:
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/prints/get \
-  -H 'Content-Type: application/json' \
-  -d '{"printid":"prnt_XXXX"}'
-```
-```bash
-curl -sS \
-  http://localhost:3079/v1/vrchat/prints/own
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/prints/upload \
-  -H 'Content-Type: application/json' \
-  -d '{"imageBase64":"BASE64_PNG","note":"Hello","timestamp":"2026-01-16T12:00:00Z","worldId":"wrld_XXXX","worldName":"World Name"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/prints/edit \
-  -H 'Content-Type: application/json' \
-  -d '{"printid":"prnt_XXXX","imageBase64":"BASE64_PNG","note":"Updated note"}'
-```
-```bash
-curl -sS -X POST \
-  http://localhost:3079/v1/vrchat/prints/delete \
-  -H 'Content-Type: application/json' \
-  -d '{"printid":"prnt_XXXX"}'
-```
-
-## Local Storage
-- Group moderation logs are stored in `config/groups_Loggers.sqlite`.
-
-## Notes
-- This is an open-source fork of VRCLogger. Use it responsibly and respect VRChat terms.
-- If you are using a real account, enable 2FA and keep the credentials private.
-
-## License
-See `LICENSE`.
+**Unused dependencies** — `package.json` still lists a few packages that are no
+longer required (`node-2fa`, `queue-fifo`, `p-limit`, `swagger-*`, `websocket`,
+`winston`). They are harmless; remove them if you want a leaner install.
