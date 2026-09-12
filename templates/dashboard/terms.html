@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Terms of Service - VRC Logger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#070b10",
+            panel: "#0d141b",
+            line: "#1e2b33"
+          },
+          boxShadow: {
+            glow: "0 0 40px rgba(16, 185, 129, 0.16)"
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 28rem),
+        radial-gradient(circle at 85% 10%, rgba(6, 182, 212, 0.10), transparent 24rem),
+        #070b10;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 antialiased">
+  <main class="mx-auto max-w-4xl px-4 py-10">
+    <header class="mb-8 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300">
+          <i data-lucide="file-check-2" class="h-6 w-6"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-semibold">Terms of Service</h1>
+          <p class="text-sm text-slate-400">VRC Logger - Last updated May 8, 2026</p>
+        </div>
+      </div>
+      <nav class="flex gap-2">
+        <a href="/dashboard" class="rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Dashboard</a>
+        <a href="/privacy" class="rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Privacy</a>
+      </nav>
+    </header>
+
+    <article class="space-y-5 rounded-lg border border-line bg-panel/90 p-6 leading-7 text-slate-300 shadow-glow">
+      <section>
+        <h2 class="mb-2 text-lg font-semibold text-slate-100">Use Of The Bot</h2>
+        <p>You may use VRC Logger only for Discord servers and VRChat groups where you have permission to configure logging, moderation tools, and group automation.</p>
+      </section>
+
+      <section>
+        <h2 class="mb-2 text-lg font-semibold text-slate-100">Authorized Administrators</h2>
+        <p>Dashboard access is intended for Discord server owners, administrators, and approved logger staff. By using the dashboard, you confirm that you are authorized to view or manage the selected Discord server and connected VRChat group data.</p>
+      </section>
+
+      <section>
+        <h2 class="mb-2 text-lg font-semibold text-slate-100">VRChat Backend Actions</h2>
+        <p>VRChat group actions are sent through a NekoSuneVR controlled backend API and bot account. You are responsible for enabling only the VRChat role permissions needed for your group workflow.</p>
+        <p class="mt-2">The bot account's group membership visibility is kept hidden automatically where supported by the backend API.</p>
+      </section>
+
+      <section>
+        <h2 class="mb-2 text-lg font-semibold text-slate-100">Acceptable Use</h2>
+        <p>Do not use the service for unauthorized access, harassment, impersonation, bypassing group owner decisions, or collecting data from servers or groups you are not authorized to manage.</p>
+      </section>
+
+      <section>
+        <h2 class="mb-2 text-lg font-semibold text-slate-100">Admin Responsibilities</h2>
+        <p>Server owners and admins are responsible for their logger configuration, Discord role/channel permissions, VRChat group role permissions, and any notices required for their own community rules.</p>
+      </section>
+
+      <section>
+        <h2 class="mb-2 text-lg font-semibold text-slate-100">Data Requests</h2>
+        <p>Requests to delete or correct server/group records should be sent to <a href="https://nekosunevr.co.uk/?redirect=discord" class="text-emerald-300 hover:text-emerald-200">https://nekosunevr.co.uk/?redirect=discord</a>. Requests must come from a verified Discord server owner/admin or authorized VRChat group operator for the relevant logger setup.</p>
+      </section>
+
+      <section>
+        <h2 class="mb-2 text-lg font-semibold text-slate-100">Service Availability</h2>
+        <p>The service is provided as available. Features may change, fail, or be limited by Discord, VRChat, backend API availability, rate limits, permissions, or configuration errors.</p>
+      </section>
+    </article>
+  </main>
+  <script>
+    if (window.lucide) window.lucide.createIcons();
+  </script>
+</body>
+</html>

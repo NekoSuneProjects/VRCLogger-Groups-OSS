@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VRC Logger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#070b10",
+            panel: "#0d141b",
+            line: "#1e2b33"
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background:
+        linear-gradient(180deg, rgba(16, 185, 129, 0.14), transparent 24rem),
+        #070b10;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 antialiased">
+  <main class="mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 lg:px-6">
+    <header class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300">
+          <i data-lucide="shield-check" class="h-5 w-5"></i>
+        </div>
+        <div>
+          <div class="font-semibold">VRC Logger</div>
+          <div class="text-xs text-slate-500">Discord and VRChat group tools</div>
+        </div>
+      </div>
+      <nav class="flex items-center gap-2">
+        <a href="/privacy" class="rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Privacy</a>
+        <a href="/terms" class="rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Terms</a>
+      </nav>
+    </header>
+
+    <section class="grid flex-1 place-items-center py-16">
+      <div class="w-full max-w-3xl">
+        <div class="mb-6 inline-flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
+          <i data-lucide="activity" class="h-4 w-4"></i>
+          Live server dashboard
+        </div>
+        <h1 class="max-w-2xl text-4xl font-semibold tracking-normal text-slate-50 sm:text-5xl">VRC Logger dashboard</h1>
+        <p class="mt-4 max-w-2xl text-base leading-7 text-slate-400">
+          Sign in with Discord to manage configured Discord servers, VRChat groups, logs, staff access, and client API keys.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="/dashboard" class="inline-flex items-center gap-2 rounded-lg bg-emerald-400 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-300">
+            <i data-lucide="layout-dashboard" class="h-4 w-4"></i>
+            Open Dashboard
+          </a>
+          <a href="/auth/discord?returnTo=%2Fdashboard" class="inline-flex items-center gap-2 rounded-lg border border-line px-4 py-3 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+            <i data-lucide="log-in" class="h-4 w-4"></i>
+            Sign In
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    if (window.lucide) window.lucide.createIcons();
+  </script>
+</body>
+</html>

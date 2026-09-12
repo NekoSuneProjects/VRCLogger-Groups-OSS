@@ -1,0 +1,1690 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VRC Logger Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink: "#070b10",
+            panel: "#0d141b",
+            line: "#1e2b33",
+            glow: "#34d399"
+          },
+          boxShadow: {
+            glow: "0 0 40px rgba(16, 185, 129, 0.18)"
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.18), transparent 28rem),
+        radial-gradient(circle at 85% 10%, rgba(6, 182, 212, 0.12), transparent 24rem),
+        #070b10;
+    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: #0b1117; }
+    ::-webkit-scrollbar-thumb { background: #22343f; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2e4b58; }
+    .stable-card { min-height: 126px; }
+    .table-shell { max-height: min(62vh, 760px); }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 antialiased">
+  <div id="toast" class="fixed right-4 top-4 z-50 hidden max-w-sm rounded-lg border border-emerald-400/30 bg-slate-950/95 px-4 py-3 text-sm text-slate-100 shadow-glow backdrop-blur"></div>
+
+  <section id="authScreen" class="hidden min-h-screen px-4 py-10">
+    <div class="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center">
+      <div class="w-full rounded-lg border border-line bg-panel/90 p-6 shadow-glow backdrop-blur">
+        <div class="mb-6 flex items-center gap-3">
+          <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300">
+            <i data-lucide="shield-check" class="h-6 w-6"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-semibold tracking-normal">VRC Logger Dashboard</h1>
+            <p class="text-sm text-slate-400">Discord access required</p>
+          </div>
+        </div>
+        <a href="/auth/discord" class="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300">
+          <i data-lucide="log-in" class="h-4 w-4"></i>
+          Login with Discord
+        </a>
+        <div class="mt-4 flex justify-center gap-4 text-xs text-slate-500">
+          <a href="/privacy" class="hover:text-emerald-200">Privacy Policy</a>
+          <a href="/terms" class="hover:text-emerald-200">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="setupScreen" class="hidden min-h-screen px-4 py-10">
+    <div class="mx-auto flex min-h-[calc(100vh-5rem)] max-w-2xl items-center">
+      <div class="w-full rounded-lg border border-amber-400/30 bg-panel/90 p-6 shadow-glow backdrop-blur">
+        <div class="mb-5 flex items-start gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-400/15 text-amber-300">
+            <i data-lucide="settings" class="h-6 w-6"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-semibold">Dashboard setup needed</h1>
+            <p class="mt-1 text-sm text-slate-400">Discord OAuth is missing one or more settings.</p>
+          </div>
+        </div>
+        <div id="setupDetails" class="space-y-3 text-sm text-slate-300"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="emptyAccessScreen" class="hidden min-h-screen px-4 py-10">
+    <div class="mx-auto flex min-h-[calc(100vh-5rem)] max-w-xl items-center">
+      <div class="w-full rounded-lg border border-line bg-panel/90 p-6 shadow-glow backdrop-blur">
+        <div class="mb-5 flex items-center gap-3">
+          <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-red-400/15 text-red-300">
+            <i data-lucide="lock" class="h-6 w-6"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-semibold">No dashboard access</h1>
+            <p class="mt-1 text-sm text-slate-400">Use a Discord account that owns or administrates a configured server.</p>
+          </div>
+        </div>
+        <a href="/auth/logout" class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+          <i data-lucide="log-out" class="h-4 w-4"></i>
+          Switch account
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section id="appScreen" class="hidden min-h-screen">
+    <aside class="fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-line bg-slate-950/78 p-4 backdrop-blur xl:block">
+      <div class="mb-5 flex items-center gap-3 px-1">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-300">
+          <i data-lucide="activity" class="h-5 w-5"></i>
+        </div>
+        <div>
+          <div class="font-semibold">VRC Logger</div>
+          <div class="text-xs text-slate-500">Secure dashboard</div>
+        </div>
+      </div>
+
+      <div class="mb-3 flex items-center justify-between px-1">
+        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Discord Server</span>
+        <i data-lucide="server" class="h-4 w-4 text-slate-500"></i>
+      </div>
+      <div id="guildCard"></div>
+    </aside>
+
+    <main class="xl:pl-72">
+      <header class="sticky top-0 z-20 border-b border-line bg-slate-950/72 px-4 py-3 backdrop-blur lg:px-6">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-3">
+            <div class="min-w-0">
+              <div id="currentGuildName" class="truncate text-lg font-semibold">Dashboard</div>
+              <div id="currentGroupName" class="truncate text-sm text-slate-400">Loading</div>
+            </div>
+          </div>
+
+          <div class="flex min-w-0 flex-1 items-center justify-end gap-2">
+            <button id="refreshButton" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line text-slate-300 transition hover:border-emerald-400/50 hover:text-emerald-200" title="Refresh">
+              <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+            </button>
+            <div id="liveStatus" class="hidden items-center gap-2 rounded-lg border border-line bg-slate-950/80 px-3 py-2 text-xs text-slate-400 sm:inline-flex">
+              <span id="liveDot" class="h-2 w-2 rounded-full bg-slate-600"></span>
+              <span id="liveStatusText">Connecting</span>
+            </div>
+            <button id="notifyButton" class="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line text-slate-300 transition hover:border-emerald-400/50 hover:text-emerald-200" title="Notifications">
+              <i data-lucide="bell" class="h-4 w-4"></i>
+              <span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-300"></span>
+            </button>
+            <div class="flex items-center gap-2 rounded-lg border border-line bg-slate-950/80 py-1 pl-1 pr-3">
+              <img id="userAvatar" class="h-8 w-8 rounded-md bg-slate-800 object-cover" alt="" />
+              <span id="userName" class="hidden max-w-36 truncate text-sm text-slate-300 sm:block"></span>
+            </div>
+            <a href="/auth/logout" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line text-slate-300 transition hover:border-red-400/50 hover:text-red-200" title="Logout">
+              <i data-lucide="log-out" class="h-4 w-4"></i>
+            </a>
+          </div>
+        </div>
+
+        <nav id="tabs" class="mt-3 flex gap-2 overflow-x-auto pb-1"></nav>
+      </header>
+
+      <section id="content" class="p-4 lg:p-6"></section>
+    </main>
+  </section>
+
+  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 p-4 backdrop-blur">
+    <div class="max-h-[88vh] w-full max-w-4xl overflow-hidden rounded-lg border border-line bg-panel shadow-glow">
+      <div class="flex items-center justify-between border-b border-line px-4 py-3">
+        <div>
+          <div id="modalTitle" class="font-semibold">Event</div>
+          <div id="modalSubtitle" class="text-xs text-slate-500"></div>
+        </div>
+        <button id="closeModal" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+          <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+      </div>
+      <pre id="modalBody" class="max-h-[72vh] overflow-auto p-4 text-xs leading-5 text-slate-300"></pre>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      bootstrap: null,
+      selectedGuildId: "",
+      selectedGroupId: "",
+      tab: "overview",
+      events: { q: "", type: "", offset: 0 },
+      users: { q: "", offset: 0 },
+      blacklists: { kind: "users", q: "", offset: 0, archived: false },
+      staff: { kind: "staff", q: "", offset: 0 },
+      global: { q: "", offset: 0 },
+      setup: { groupid: "", groupName: "", confirmPermissions: false, invites: [] },
+      joinInvites: { invites: [], requests: [] },
+      clientApi: { access: null, reveal: true },
+      live: { source: null, revision: "", refreshing: false, refreshTimer: null }
+    };
+
+    const tabs = [
+      ["overview", "Overview", "layout-dashboard"],
+      ["setup", "Setup", "settings"],
+      ["joinInvites", "Join Invites", "mail-check"],
+      ["clientApi", "Client API", "key-round"],
+      ["events", "Audit Logs", "list-filter"],
+      ["users", "User Stats", "users"],
+      ["blacklists", "Blacklists", "shield-alert"],
+      ["staff", "Staff & Queue", "badge-check"],
+      ["global", "Global Shares", "share-2"]
+    ];
+
+    const els = {
+      auth: document.getElementById("authScreen"),
+      setup: document.getElementById("setupScreen"),
+      empty: document.getElementById("emptyAccessScreen"),
+      app: document.getElementById("appScreen"),
+      content: document.getElementById("content"),
+      guildCard: document.getElementById("guildCard"),
+      currentGuildName: document.getElementById("currentGuildName"),
+      currentGroupName: document.getElementById("currentGroupName"),
+      userAvatar: document.getElementById("userAvatar"),
+      userName: document.getElementById("userName"),
+      tabs: document.getElementById("tabs"),
+      toast: document.getElementById("toast"),
+      setupDetails: document.getElementById("setupDetails"),
+      modal: document.getElementById("modal"),
+      modalTitle: document.getElementById("modalTitle"),
+      modalSubtitle: document.getElementById("modalSubtitle"),
+      modalBody: document.getElementById("modalBody"),
+      liveStatus: document.getElementById("liveStatus"),
+      liveDot: document.getElementById("liveDot"),
+      liveStatusText: document.getElementById("liveStatusText")
+    };
+
+    function iconify() {
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function showOnly(name) {
+      for (const key of ["auth", "setup", "empty", "app"]) {
+        els[key].classList.toggle("hidden", key !== name);
+      }
+      iconify();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat().format(Number(value || 0));
+    }
+
+    function formatBytes(value) {
+      const bytes = Number(value || 0);
+      if (!bytes) return "0 B";
+      const units = ["B", "KB", "MB", "GB"];
+      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
+    }
+
+    function formatDate(value) {
+      if (!value) return "Unknown";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "Unknown";
+      return date.toLocaleString();
+    }
+
+    function eventTone(type) {
+      const text = String(type || "").toLowerCase();
+      if (text.includes("ban") || text.includes("reject") || text.includes("remove")) return "border-red-400/30 bg-red-400/10 text-red-200";
+      if (text.includes("join") || text.includes("unban")) return "border-emerald-400/30 bg-emerald-400/10 text-emerald-200";
+      if (text.includes("warn") || text.includes("kick")) return "border-amber-400/30 bg-amber-400/10 text-amber-200";
+      return "border-cyan-400/30 bg-cyan-400/10 text-cyan-200";
+    }
+
+    function toast(message, tone = "ok") {
+      els.toast.textContent = message;
+      els.toast.className = "fixed right-4 top-4 z-50 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-glow backdrop-blur";
+      els.toast.classList.add(
+        tone === "error" ? "border-red-400/40" : "border-emerald-400/30",
+        tone === "error" ? "bg-red-950/95" : "bg-slate-950/95",
+        tone === "error" ? "text-red-100" : "text-slate-100"
+      );
+      window.clearTimeout(toast.timer);
+      toast.timer = window.setTimeout(() => els.toast.classList.add("hidden"), 3200);
+    }
+
+    async function api(path) {
+      const res = await fetch(path, { headers: { Accept: "application/json" } });
+      if (res.status === 401) {
+        showOnly("auth");
+        throw new Error("Not authenticated");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || data.error || data.message || "Request failed");
+      }
+      return data;
+    }
+
+    async function apiPost(path, payload = {}) {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 401) {
+        showOnly("auth");
+        throw new Error("Not authenticated");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || data.error || data.message || "Request failed");
+      return data;
+    }
+
+    async function apiWrite(path, method, payload) {
+      const options = {
+        method,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        }
+      };
+      if (payload !== undefined) options.body = JSON.stringify(payload);
+      const res = await fetch(path, options);
+      if (res.status === 401) {
+        showOnly("auth");
+        throw new Error("Not authenticated");
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || data.error || data.message || "Request failed");
+      return data;
+    }
+
+    async function apiPatch(path, payload = {}) {
+      return apiWrite(path, "PATCH", payload);
+    }
+
+    async function apiDelete(path) {
+      return apiWrite(path, "DELETE");
+    }
+
+    function setLiveStatus(mode, label) {
+      els.liveStatus.classList.remove("hidden");
+      els.liveStatus.classList.add("inline-flex");
+      els.liveStatusText.textContent = label;
+      els.liveDot.className = "h-2 w-2 rounded-full";
+      if (mode === "live") els.liveDot.classList.add("bg-emerald-300");
+      else if (mode === "updating") els.liveDot.classList.add("bg-cyan-300", "animate-pulse");
+      else if (mode === "error") els.liveDot.classList.add("bg-red-300");
+      else els.liveDot.classList.add("bg-amber-300", "animate-pulse");
+    }
+
+    function closeLiveStream() {
+      if (state.live.source) {
+        state.live.source.close();
+        state.live.source = null;
+      }
+      window.clearTimeout(state.live.refreshTimer);
+      state.live.refreshTimer = null;
+      state.live.revision = "";
+    }
+
+    function canLiveRefresh() {
+      if (!state.selectedGuildId || !state.selectedGroupId) return false;
+      if (!document.getElementById("appScreen") || els.app.classList.contains("hidden")) return false;
+      if (!els.modal.classList.contains("hidden")) return false;
+      if (document.activeElement?.id === "searchInput") return false;
+      return true;
+    }
+
+    function queueLiveRefresh() {
+      if (state.live.refreshing) return;
+      window.clearTimeout(state.live.refreshTimer);
+      state.live.refreshTimer = window.setTimeout(async () => {
+        if (!canLiveRefresh()) return;
+        state.live.refreshing = true;
+        setLiveStatus("updating", "Updating");
+        try {
+          await loadTab({ silent: true });
+          setLiveStatus("live", "Live");
+        } catch {
+          setLiveStatus("error", "Live error");
+        } finally {
+          state.live.refreshing = false;
+        }
+      }, 250);
+    }
+
+    function startLiveStream() {
+      closeLiveStream();
+      if (!window.EventSource || !state.selectedGuildId || !state.selectedGroupId) {
+        setLiveStatus("error", "Live off");
+        return;
+      }
+
+      setLiveStatus("connecting", "Connecting");
+      const source = new EventSource(`/api/guilds/${encodeURIComponent(state.selectedGuildId)}/live?${groupParam()}`);
+      state.live.source = source;
+
+      source.addEventListener("open", () => {
+        setLiveStatus("live", "Live");
+      });
+
+      source.addEventListener("snapshot", event => {
+        let payload = null;
+        try {
+          payload = JSON.parse(event.data || "{}");
+        } catch {
+          return;
+        }
+
+        const hadRevision = Boolean(state.live.revision);
+        if (payload.revision && payload.revision !== state.live.revision) {
+          state.live.revision = payload.revision;
+          setLiveStatus("live", "Live");
+          if (hadRevision) queueLiveRefresh();
+        }
+      });
+
+      source.addEventListener("heartbeat", () => {
+        setLiveStatus("live", "Live");
+      });
+
+      source.addEventListener("live-error", () => {
+        setLiveStatus("error", "Live error");
+      });
+
+      source.onerror = () => {
+        setLiveStatus("error", "Reconnecting");
+      };
+    }
+
+    // One Discord server, one VRChat group - both come straight from bootstrap.
+    function selectedGuild() {
+      return state.bootstrap?.guilds?.[0] || null;
+    }
+
+    function selectedGroup() {
+      return selectedGuild()?.groups?.[0] || null;
+    }
+
+    function visibleTabs() {
+      const guild = selectedGuild();
+      return tabs.filter(([id]) => {
+        if (id === "setup" || id === "joinInvites") return guild?.canManageSetup || guild?.canManage;
+        return true;
+      });
+    }
+
+    function groupParam() {
+      return `groupId=${encodeURIComponent(state.selectedGroupId || "")}`;
+    }
+
+    function renderShell() {
+      const user = state.bootstrap.user;
+      els.userAvatar.src = user.avatar || "";
+      els.userName.textContent = user.globalName || user.username || "Discord";
+      renderGuildCard();
+      renderTabs();
+      updateHeader();
+      iconify();
+    }
+
+    function renderGuildCard() {
+      const guild = selectedGuild();
+      if (!guild) {
+        els.guildCard.innerHTML = "";
+        return;
+      }
+
+      const group = selectedGroup();
+      const badge = guild.isOwner
+        ? "Owner"
+        : guild.isAdministrator
+          ? "Admin"
+          : guild.accessRole || "Staff";
+      const icon = guild.icon
+        ? `<img src="${escapeHtml(guild.icon)}" alt="" class="h-9 w-9 rounded-md object-cover">`
+        : `<div class="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-400/15 text-sm font-semibold text-emerald-200">${escapeHtml((guild.name || "?").slice(0, 1))}</div>`;
+
+      els.guildCard.innerHTML = `
+        <div class="rounded-lg border border-emerald-400/60 bg-emerald-400/10 px-3 py-2">
+          <div class="flex items-center gap-3">
+            ${icon}
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-medium text-slate-100">${escapeHtml(guild.name)}</span>
+              <span class="block text-xs text-slate-500">${escapeHtml(badge)}${guild.memberCount ? ` · ${formatNumber(guild.memberCount)} members` : ""}</span>
+            </span>
+          </div>
+          <div class="mt-3 border-t border-line pt-2">
+            <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">VRChat group</div>
+            <div class="mt-1 truncate text-sm text-slate-200">${escapeHtml(group?.name || group?.id || "Not configured")}</div>
+            ${group?.id ? `<div class="truncate text-xs text-slate-500">${escapeHtml(group.id)}</div>` : ""}
+          </div>
+        </div>`;
+    }
+
+    function renderTabs() {
+      const allowedTabs = visibleTabs();
+      if (!allowedTabs.some(([id]) => id === state.tab)) state.tab = "overview";
+      els.tabs.innerHTML = allowedTabs.map(([id, label, icon]) => `
+        <button data-tab="${id}" class="tab-button inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${state.tab === id ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-100" : "border-line text-slate-400 hover:border-emerald-400/40 hover:text-emerald-100"}">
+          <i data-lucide="${icon}" class="h-4 w-4"></i>
+          ${label}
+        </button>
+      `).join("");
+      document.querySelectorAll(".tab-button").forEach(button => {
+        button.addEventListener("click", () => {
+          state.tab = button.dataset.tab;
+          renderTabs();
+          loadTab();
+        });
+      });
+      iconify();
+    }
+
+    function updateHeader() {
+      const guild = selectedGuild();
+      const group = selectedGroup();
+      els.currentGuildName.textContent = guild?.name || "Dashboard";
+      els.currentGroupName.textContent = group?.name || group?.id || "No VRChat group";
+      if (guild?.id) state.selectedGuildId = guild.id;
+      if (group?.id) state.selectedGroupId = group.id;
+    }
+
+    function setLoading(label = "Loading data") {
+      els.content.innerHTML = `
+        <div class="grid min-h-[50vh] place-items-center">
+          <div class="flex items-center gap-3 rounded-lg border border-line bg-panel/80 px-4 py-3 text-sm text-slate-300">
+            <i data-lucide="loader-2" class="h-4 w-4 animate-spin text-emerald-300"></i>
+            ${escapeHtml(label)}
+          </div>
+        </div>`;
+      iconify();
+    }
+
+    function errorPanel(message) {
+      els.content.innerHTML = `
+        <div class="rounded-lg border border-red-400/30 bg-red-950/30 p-4 text-sm text-red-100">
+          ${escapeHtml(message)}
+        </div>`;
+    }
+
+    function kpiCard(label, value, icon, accent) {
+      return `
+        <div class="stable-card rounded-lg border border-line bg-panel/88 p-4 shadow-sm">
+          <div class="mb-4 flex items-center justify-between">
+            <span class="text-sm text-slate-400">${escapeHtml(label)}</span>
+            <span class="flex h-9 w-9 items-center justify-center rounded-lg ${accent}">
+              <i data-lucide="${icon}" class="h-4 w-4"></i>
+            </span>
+          </div>
+          <div class="text-3xl font-semibold tracking-normal">${formatNumber(value)}</div>
+        </div>`;
+    }
+
+    function rowEmpty(label) {
+      return `<div class="rounded-lg border border-dashed border-line p-6 text-center text-sm text-slate-500">${escapeHtml(label)}</div>`;
+    }
+
+    function renderOverview(data) {
+      const counts = data.counts || {};
+      const maxType = Math.max(...(data.eventTypes || []).map(item => Number(item.count || 0)), 1);
+      els.content.innerHTML = `
+        <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+          ${kpiCard("Audit events", counts.events, "activity", "bg-emerald-400/15 text-emerald-300")}
+          ${kpiCard("Tracked users", counts.trackedUsers, "users", "bg-cyan-400/15 text-cyan-300")}
+          ${kpiCard("User blacklists", counts.userBlacklists, "shield-alert", "bg-red-400/15 text-red-300")}
+          ${kpiCard("Avatar blacklists", counts.avatarBlacklists, "box", "bg-amber-400/15 text-amber-300")}
+          ${kpiCard("Group blacklists", counts.groupBlacklists, "ban", "bg-fuchsia-400/15 text-fuchsia-300")}
+          ${kpiCard("Active staff", counts.activeStaff, "badge-check", "bg-emerald-400/15 text-emerald-300")}
+          ${kpiCard("Queue items", counts.queue, "list-plus", "bg-sky-400/15 text-sky-300")}
+          ${kpiCard("Global shares", counts.globalShares, "share-2", "bg-teal-400/15 text-teal-300")}
+        </div>
+
+        <div class="mt-5 grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+          <div class="rounded-lg border border-line bg-panel/88 p-4">
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="font-semibold">Recent Audit Logs</h2>
+              <button data-jump-tab="events" class="jump-tab inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+                <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i>
+                Open
+              </button>
+            </div>
+            <div class="space-y-2">
+              ${(data.recentEvents || []).length ? data.recentEvents.map(eventRow).join("") : rowEmpty("No audit logs stored for this group yet.")}
+            </div>
+          </div>
+
+          <div class="space-y-5">
+            <div class="rounded-lg border border-line bg-panel/88 p-4">
+              <h2 class="mb-4 font-semibold">Event Mix</h2>
+              <div class="space-y-3">
+                ${(data.eventTypes || []).length ? data.eventTypes.map(item => `
+                  <div>
+                    <div class="mb-1 flex items-center justify-between gap-3 text-xs">
+                      <span class="truncate text-slate-300">${escapeHtml(item.eventType || "Unknown")}</span>
+                      <span class="text-slate-500">${formatNumber(item.count)}</span>
+                    </div>
+                    <div class="h-2 overflow-hidden rounded-full bg-slate-800">
+                      <div class="h-full rounded-full bg-emerald-300" style="width:${Math.max(4, Number(item.count || 0) / maxType * 100)}%"></div>
+                    </div>
+                  </div>
+                `).join("") : rowEmpty("No event mix available.")}
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-line bg-panel/88 p-4">
+              <h2 class="mb-4 font-semibold">Top User Counters</h2>
+              <div class="space-y-2">
+                ${(data.topUsers || []).length ? data.topUsers.map(userCounterRow).join("") : rowEmpty("No user counters stored.")}
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+      wireEventRows(data.recentEvents || []);
+      document.querySelectorAll(".jump-tab").forEach(button => {
+        button.addEventListener("click", () => {
+          state.tab = button.dataset.jumpTab;
+          renderTabs();
+          loadTab();
+        });
+      });
+      iconify();
+    }
+
+    function eventRow(item, index = 0) {
+      const tone = eventTone(item.eventType);
+      return `
+        <button data-event-index="${index}" class="event-row flex w-full items-start gap-3 rounded-lg border border-line bg-slate-950/40 p-3 text-left transition hover:border-emerald-400/40">
+          <span class="mt-0.5 rounded-md border px-2 py-1 text-xs ${tone}">${escapeHtml(item.eventType || "event")}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-sm text-slate-200">${escapeHtml(item.description || item.eventId || "No description")}</span>
+            <span class="mt-1 block truncate text-xs text-slate-500">${escapeHtml(item.targetId || "No target")} · ${formatDate(item.createdAt)}</span>
+          </span>
+        </button>`;
+    }
+
+    function wireEventRows(rows) {
+      document.querySelectorAll(".event-row").forEach(button => {
+        button.addEventListener("click", () => {
+          const row = rows[Number(button.dataset.eventIndex)];
+          showEventModal(row);
+        });
+      });
+    }
+
+    function userTotal(row) {
+      return ["bans", "unbans", "kicks", "warnings", "joins", "leaves", "remove", "requestsend", "requestreject"]
+        .reduce((sum, key) => sum + Number(row[key] || 0), 0);
+    }
+
+    function userCounterRow(row) {
+      return `
+        <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+          <div class="mb-2 flex items-center justify-between gap-3">
+            <span class="truncate text-sm font-medium text-slate-200">${escapeHtml(row.userId)}</span>
+            <span class="rounded-md bg-emerald-400/10 px-2 py-1 text-xs text-emerald-200">${formatNumber(userTotal(row))}</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-xs text-slate-400">
+            <span>Bans ${formatNumber(row.bans)}</span>
+            <span>Kicks ${formatNumber(row.kicks)}</span>
+            <span>Warns ${formatNumber(row.warnings)}</span>
+            <span>Joins ${formatNumber(row.joins)}</span>
+            <span>Leaves ${formatNumber(row.leaves)}</span>
+            <span>Requests ${formatNumber(Number(row.requestsend || 0) + Number(row.requestreject || 0))}</span>
+          </div>
+        </div>`;
+    }
+
+    function controlsHtml(searchValue, placeholder, extra = "") {
+      return `
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <div class="relative min-w-64 flex-1">
+            <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"></i>
+            <input id="searchInput" value="${escapeHtml(searchValue)}" placeholder="${escapeHtml(placeholder)}" class="w-full rounded-lg border border-line bg-slate-950 py-2 pl-9 pr-3 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-emerald-400" />
+          </div>
+          ${extra}
+          <button id="searchButton" class="inline-flex items-center gap-2 rounded-lg bg-emerald-400 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-300">
+            <i data-lucide="filter" class="h-4 w-4"></i>
+            Apply
+          </button>
+        </div>`;
+    }
+
+    function backendResultHtml(result) {
+      if (!result) return "";
+      const ok = Number(result.status || 0) >= 200 && Number(result.status || 0) < 300;
+      return `
+        <div class="mt-4 rounded-lg border ${ok ? "border-emerald-400/30 bg-emerald-400/10" : "border-amber-400/30 bg-amber-400/10"} p-3 text-sm">
+          <div class="${ok ? "text-emerald-100" : "text-amber-100"}">${escapeHtml(result.message || "Backend response")}</div>
+          ${result.bot ? `<div class="mt-2 text-xs text-slate-400">Bot: ${escapeHtml(result.bot.displayName || result.bot.id || "Unknown")} ${result.bot.id ? `(${escapeHtml(result.bot.id)})` : ""}</div>` : ""}
+          ${result.privacy ? `<div class="mt-2 text-xs text-slate-400">Privacy: ${escapeHtml(result.privacy.message || `Visibility set to ${result.privacy.visibility || "hidden"}`)}</div>` : ""}
+        </div>`;
+    }
+
+    async function renderSetup(options = {}) {
+      if (!options.silent) setLoading("Loading setup");
+      const data = await api(`/api/guilds/${state.selectedGuildId}/setup`);
+      const groups = data.groups || [];
+      const currentGroup = groups[0] || null;
+      const currentGroupId = state.setup.groupid || currentGroup?.id || "";
+      const groupNameValue = state.setup.groupName || currentGroup?.name || "";
+      const formTitle = currentGroup ? "Edit VRChat Group" : "Set VRChat Group";
+      const saveLabel = currentGroup ? "Save Changes" : "Set Group";
+      const permissionItems = (data.rolePermissions || []).map((item, index) => `
+        <label class="flex gap-3 rounded-lg border border-line bg-slate-950/35 p-3 text-sm">
+          <input type="checkbox" class="permission-check mt-1 h-4 w-4 rounded border-line bg-slate-950 text-emerald-400" data-permission-index="${index}" ${state.setup.confirmPermissions ? "checked" : ""}>
+          <span>
+            <span class="block font-medium text-slate-200">${escapeHtml(item.name)}</span>
+            <span class="mt-1 block text-xs leading-5 text-slate-500">${escapeHtml(item.description)}</span>
+          </span>
+        </label>
+      `).join("");
+
+      els.content.innerHTML = `
+        <div class="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+          <div class="space-y-5">
+            <section class="rounded-lg border border-line bg-panel/88 p-4">
+              <div class="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 class="font-semibold">${formTitle}</h2>
+                  <p class="mt-1 text-sm text-slate-500">This Discord server tracks exactly one VRChat group. Saving replaces it.</p>
+                </div>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                  <span class="rounded-md bg-slate-950 px-2 py-1 text-xs text-slate-500">${escapeHtml(data.backendUrl || "No backend URL")}</span>
+                </div>
+              </div>
+              <div class="grid gap-3">
+                <label class="text-sm">
+                  <span class="mb-1 block text-slate-400">VRChat group ID</span>
+                  <input id="setupGroupId" value="${escapeHtml(currentGroupId)}" placeholder="grp_..." class="w-full rounded-lg border border-line bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-400" />
+                </label>
+                <label class="text-sm">
+                  <span class="mb-1 block text-slate-400">Group name override</span>
+                  <input id="setupGroupName" value="${escapeHtml(groupNameValue)}" placeholder="Leave blank to use VRChat group name" class="w-full rounded-lg border border-line bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-400" />
+                </label>
+                <div class="grid gap-2 sm:grid-cols-2">
+                  <label class="flex items-center gap-2 rounded-lg border border-line bg-slate-950/35 px-3 py-2 text-sm text-slate-300">
+                    <input id="setupAutoShare" type="checkbox" class="h-4 w-4 rounded border-line bg-slate-950 text-emerald-400">
+                    Global auto-share
+                  </label>
+                  <label class="flex items-center gap-2 rounded-lg border border-line bg-slate-950/35 px-3 py-2 text-sm text-slate-300">
+                    <input id="setupReqNotify" type="checkbox" class="h-4 w-4 rounded border-line bg-slate-950 text-emerald-400">
+                    Request notification channel
+                  </label>
+                </div>
+                <label class="flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-100">
+                  <input id="confirmPermissions" type="checkbox" class="h-4 w-4 rounded border-line bg-slate-950 text-emerald-400" ${state.setup.confirmPermissions ? "checked" : ""}>
+                  I turned on the listed permissions for the bot role in VRChat.
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button id="lookupGroupButton" class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+                    <i data-lucide="search" class="h-4 w-4"></i>
+                    Lookup
+                  </button>
+                  <button id="saveGroupButton" class="inline-flex items-center gap-2 rounded-lg bg-emerald-400 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-300">
+                    <i data-lucide="save" class="h-4 w-4"></i>
+                    ${saveLabel}
+                  </button>
+                  <button id="joinGroupButton" class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+                    <i data-lucide="log-in" class="h-4 w-4"></i>
+                    Join or Request
+                  </button>
+                  <button id="directJoinGroupButton" class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+                    <i data-lucide="send" class="h-4 w-4"></i>
+                    Direct Join
+                  </button>
+                  <button id="privacySyncButton" class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+                    <i data-lucide="eye-off" class="h-4 w-4"></i>
+                    Sync Hidden Privacy
+                  </button>
+                </div>
+                <div id="setupResult"></div>
+              </div>
+            </section>
+
+            <section class="rounded-lg border border-line bg-panel/88 p-4">
+              <h2 class="mb-3 font-semibold">Current Group</h2>
+              ${currentGroup ? `
+                <div class="flex items-center justify-between gap-3 rounded-lg border border-emerald-400/50 bg-emerald-400/10 p-3">
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-medium text-slate-200">${escapeHtml(currentGroup.name || currentGroup.id)}</span>
+                    <span class="block truncate text-xs text-slate-500">${escapeHtml(currentGroup.id)}</span>
+                  </span>
+                  <span class="shrink-0 text-xs text-slate-500">${currentGroup.autoShare ? "Auto-share on" : "Auto-share off"}</span>
+                </div>
+              ` : rowEmpty("No VRChat group configured yet.")}
+            </section>
+          </div>
+
+          <div class="space-y-5">
+            <section class="rounded-lg border border-line bg-panel/88 p-4">
+              <h2 class="mb-3 font-semibold">VRChat Bot Role Permissions</h2>
+              <p class="mb-4 text-sm leading-6 text-slate-400">Create or choose a VRChat group role for the bot account and enable these permissions. Invite-only groups cannot be joined directly; invite the bot account first, then accept the invite from the Join Invites tab.</p>
+              <div class="grid gap-2">${permissionItems}</div>
+            </section>
+
+            <section class="rounded-lg border border-line bg-panel/88 p-4">
+              <h2 class="mb-3 font-semibold">Discord Side Commands</h2>
+              <div class="space-y-2">
+                ${(data.discordCommands || []).map(item => `
+                  <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+                    <code class="text-emerald-200">${escapeHtml(item.command)}</code>
+                    <p class="mt-1 text-sm text-slate-500">${escapeHtml(item.description)}</p>
+                  </div>
+                `).join("")}
+              </div>
+            </section>
+
+            <section class="rounded-lg border border-line bg-panel/88 p-4">
+              <h2 class="mb-3 font-semibold">Backend Endpoints Used</h2>
+              <div class="grid gap-2 sm:grid-cols-2">
+                ${(data.backendEndpoints || []).map(endpoint => `<code class="rounded-md bg-slate-950/60 px-2 py-1 text-xs text-slate-400">${escapeHtml(endpoint)}</code>`).join("")}
+              </div>
+            </section>
+          </div>
+        </div>`;
+
+      const groupInput = document.getElementById("setupGroupId");
+      const result = document.getElementById("setupResult");
+      if (currentGroup) {
+        document.getElementById("setupAutoShare").checked = Boolean(currentGroup.autoShare);
+        document.getElementById("setupReqNotify").checked = Boolean(currentGroup.requestNotifications);
+      }
+
+      document.querySelectorAll(".permission-check").forEach(input => {
+        input.addEventListener("change", () => {
+          const checks = [...document.querySelectorAll(".permission-check")];
+          const allChecked = checks.length > 0 && checks.every(item => item.checked);
+          document.getElementById("confirmPermissions").checked = allChecked;
+          state.setup.confirmPermissions = allChecked;
+        });
+      });
+      document.getElementById("confirmPermissions").addEventListener("change", event => {
+        state.setup.confirmPermissions = event.target.checked;
+        document.querySelectorAll(".permission-check").forEach(input => {
+          input.checked = event.target.checked;
+        });
+      });
+      document.getElementById("lookupGroupButton").addEventListener("click", async () => {
+        try {
+          result.innerHTML = backendResultHtml(await apiPost(`/api/guilds/${state.selectedGuildId}/setup/groups/lookup`, { groupid: groupInput.value.trim() }));
+        } catch (err) {
+          result.innerHTML = backendResultHtml({ status: 500, message: err.message });
+        }
+      });
+      document.getElementById("saveGroupButton").addEventListener("click", async () => {
+        try {
+          const payload = {
+            groupid: groupInput.value.trim(),
+            groupName: document.getElementById("setupGroupName").value.trim(),
+            autoShare: document.getElementById("setupAutoShare").checked,
+            requestNotifications: document.getElementById("setupReqNotify").checked,
+            confirmPermissions: document.getElementById("confirmPermissions").checked
+          };
+          const saved = await apiPost(`/api/guilds/${state.selectedGuildId}/setup/groups`, payload);
+          state.setup.groupid = saved.saved?.id || payload.groupid;
+          state.setup.groupName = saved.saved?.name || payload.groupName || "";
+          state.selectedGroupId = state.setup.groupid;
+          const boot = await api("/api/bootstrap");
+          state.bootstrap = boot;
+          renderShell();
+          await renderSetup();
+          startLiveStream();
+          toast("VRChat group saved");
+        } catch (err) {
+          result.innerHTML = backendResultHtml({ status: 500, message: err.message });
+        }
+      });
+      document.getElementById("joinGroupButton").addEventListener("click", async () => {
+        try {
+          result.innerHTML = backendResultHtml(await apiPost(`/api/guilds/${state.selectedGuildId}/setup/groups/join`, {
+            groupid: groupInput.value.trim(),
+            confirmOverrideBlock: false
+          }));
+        } catch (err) {
+          result.innerHTML = backendResultHtml({ status: 500, message: err.message });
+        }
+      });
+      document.getElementById("directJoinGroupButton").addEventListener("click", async () => {
+        try {
+          result.innerHTML = backendResultHtml(await apiPost(`/api/guilds/${state.selectedGuildId}/setup/groups/membership/join`, {
+            groupid: groupInput.value.trim(),
+            confirmOverrideBlock: false
+          }));
+        } catch (err) {
+          result.innerHTML = backendResultHtml({ status: 500, message: err.message });
+        }
+      });
+      document.getElementById("privacySyncButton").addEventListener("click", async () => {
+        try {
+          result.innerHTML = backendResultHtml(await apiPost(`/api/guilds/${state.selectedGuildId}/setup/groups/privacy/sync`, {}));
+        } catch (err) {
+          result.innerHTML = backendResultHtml({ status: 500, message: err.message });
+        }
+      });
+      iconify();
+    }
+
+    function listFromBackendPayload(payload) {
+      if (Array.isArray(payload?.data)) return payload.data;
+      if (Array.isArray(payload?.data?.requests)) return payload.data.requests;
+      if (Array.isArray(payload?.data?.results)) return payload.data.results;
+      if (Array.isArray(payload?.requests)) return payload.requests;
+      if (Array.isArray(payload?.results)) return payload.results;
+      return [];
+    }
+
+    function inviteGroupId(invite) {
+      return invite?.groupId || invite?.groupid || invite?.group?.id || invite?.group?.groupId || invite?.id || "";
+    }
+
+    function joinRequestUserId(request) {
+      const direct = request?.userId || request?.userid || request?.user?.id || request?.requesterId || request?.requester?.id || "";
+      if (direct) return direct;
+      const id = String(request?.id || "");
+      return id.startsWith("usr_") ? id : "";
+    }
+
+    function joinRequestName(request, userId) {
+      return request?.displayName ||
+        request?.user?.displayName ||
+        request?.user?.username ||
+        request?.requester?.displayName ||
+        request?.userName ||
+        request?.name ||
+        userId;
+    }
+
+    function joinRequestDate(request) {
+      return request?.createdAt || request?.created_at || request?.requestedAt || request?.updatedAt || "";
+    }
+
+    async function loadPendingInvites(resultEl) {
+      const list = document.getElementById("pendingInviteList");
+      list.innerHTML = rowEmpty("Loading pending invites...");
+      try {
+        const pending = await api(`/api/guilds/${state.selectedGuildId}/setup/invites/pending`);
+        const invites = listFromBackendPayload(pending);
+        state.joinInvites.invites = invites;
+        list.innerHTML = invites.map(invite => {
+          const groupId = inviteGroupId(invite);
+          const name = invite.groupName || invite.name || invite.group?.name || groupId;
+          return `
+            <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+              <div class="mb-2">
+                <div class="font-medium text-slate-200">${escapeHtml(name)}</div>
+                <div class="text-xs text-slate-500">${escapeHtml(groupId)}</div>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button data-invite-action="accept" data-invite-group="${escapeHtml(groupId)}" class="invite-action rounded-lg bg-emerald-400 px-3 py-2 text-xs font-semibold text-slate-950">Accept</button>
+                <button data-invite-action="decline" data-invite-group="${escapeHtml(groupId)}" class="invite-action rounded-lg border border-line px-3 py-2 text-xs text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Decline</button>
+                <button data-invite-action="ignore" data-invite-group="${escapeHtml(groupId)}" class="invite-action rounded-lg border border-line px-3 py-2 text-xs text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Ignore</button>
+              </div>
+            </div>`;
+        }).join("") || rowEmpty(pending.message || "No pending invites.");
+        document.querySelectorAll(".invite-action").forEach(button => {
+          button.addEventListener("click", async () => {
+            try {
+              resultEl.innerHTML = backendResultHtml(await apiPost(`/api/guilds/${state.selectedGuildId}/setup/invites/${button.dataset.inviteAction}`, {
+                groupid: button.dataset.inviteGroup
+              }));
+              await loadPendingInvites(resultEl);
+            } catch (err) {
+              resultEl.innerHTML = backendResultHtml({ status: 500, message: err.message });
+            }
+          });
+        });
+      } catch (err) {
+        list.innerHTML = rowEmpty(err.message);
+      }
+    }
+
+    async function loadJoinRequests(resultEl) {
+      const list = document.getElementById("joinRequestList");
+      list.innerHTML = rowEmpty("Loading join requests...");
+      try {
+        const payload = await api(`/api/guilds/${state.selectedGuildId}/setup/join-requests?${groupParam()}`);
+        const requests = listFromBackendPayload(payload);
+        state.joinInvites.requests = requests;
+        list.innerHTML = requests.map(request => {
+          const userId = joinRequestUserId(request);
+          const name = joinRequestName(request, userId);
+          return `
+            <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+              <div class="mb-2">
+                <div class="font-medium text-slate-200">${escapeHtml(name || "Unknown user")}</div>
+                <div class="text-xs text-slate-500">${escapeHtml(userId || "No user id")}${joinRequestDate(request) ? ` &middot; ${formatDate(joinRequestDate(request))}` : ""}</div>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button data-request-action="accept" data-request-user="${escapeHtml(userId)}" ${userId ? "" : "disabled"} class="join-request-action rounded-lg bg-emerald-400 px-3 py-2 text-xs font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-40">Accept</button>
+                <button data-request-action="deny" data-request-user="${escapeHtml(userId)}" ${userId ? "" : "disabled"} class="join-request-action rounded-lg border border-red-400/30 px-3 py-2 text-xs text-red-200 hover:border-red-300/60 hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-40">Deny</button>
+              </div>
+            </div>`;
+        }).join("") || rowEmpty(payload.message || "No pending join requests.");
+        document.querySelectorAll(".join-request-action").forEach(button => {
+          button.addEventListener("click", async () => {
+            try {
+              resultEl.innerHTML = backendResultHtml(await apiPost(`/api/guilds/${state.selectedGuildId}/setup/join-requests/${button.dataset.requestAction}?${groupParam()}`, {
+                userId: button.dataset.requestUser
+              }));
+              await loadJoinRequests(resultEl);
+            } catch (err) {
+              resultEl.innerHTML = backendResultHtml({ status: 500, message: err.message });
+            }
+          });
+        });
+      } catch (err) {
+        list.innerHTML = rowEmpty(err.message);
+      }
+    }
+
+    async function renderJoinInvites(options = {}) {
+      if (!options.silent) setLoading("Loading join invites");
+      const group = selectedGroup();
+      els.content.innerHTML = `
+        <div class="grid gap-5 xl:grid-cols-2">
+          <section class="rounded-lg border border-line bg-panel/88 p-4">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="font-semibold">Bot Group Invites</h2>
+                <p class="mt-1 text-sm text-slate-500">Invite-only groups waiting for the VRChat bot account.</p>
+              </div>
+              <button id="reloadPendingInvites" class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+                <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                Reload
+              </button>
+            </div>
+            <div id="pendingInviteList" class="space-y-2 text-sm text-slate-400">${rowEmpty("Load pending invites to accept, decline, or ignore invite-only group invites.")}</div>
+          </section>
+
+          <section class="rounded-lg border border-line bg-panel/88 p-4">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="font-semibold">Join Requests</h2>
+                <p class="mt-1 text-sm text-slate-500">${escapeHtml(group?.name || group?.id || "Selected group")} requests waiting for approval.</p>
+              </div>
+              <button id="reloadJoinRequests" class="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">
+                <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                Reload
+              </button>
+            </div>
+            <div id="joinRequestList" class="space-y-2 text-sm text-slate-400">${rowEmpty("Load join requests to accept or deny users requesting group access.")}</div>
+          </section>
+        </div>
+        <div id="joinInviteResult"></div>`;
+
+      const result = document.getElementById("joinInviteResult");
+      document.getElementById("reloadPendingInvites").addEventListener("click", () => loadPendingInvites(result));
+      document.getElementById("reloadJoinRequests").addEventListener("click", () => loadJoinRequests(result));
+      await Promise.all([loadPendingInvites(result), loadJoinRequests(result)]);
+      iconify();
+    }
+
+    async function renderClientApi(options = {}) {
+      if (!options.silent) setLoading("Loading client API access");
+      const data = await api(`/api/guilds/${state.selectedGuildId}/client-access?${groupParam()}`);
+      state.clientApi.access = data;
+      const headerLine = `${data.headerName}: ${data.apiKey}`;
+      const dashboardCurl = `curl -sS "${data.endpoints?.bootstrap || data.dashboardEndpointUrl + "/bootstrap"}" -H "${headerLine}"`;
+
+      els.content.innerHTML = `
+        <div class="grid gap-5 xl:grid-cols-[1fr_0.9fr]">
+          <section class="rounded-lg border border-line bg-panel/88 p-4">
+            <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 class="font-semibold">Client API Access</h2>
+                <p class="mt-1 text-sm text-slate-500">Use this dashboard URL and key header with the updated desktop client.</p>
+              </div>
+              <span class="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-xs text-emerald-200">${escapeHtml(data.role || "staff")}</span>
+            </div>
+            <div class="grid gap-3">
+              <label class="text-sm">
+                <span class="mb-1 block text-slate-400">Dashboard client API base</span>
+                <div class="flex gap-2">
+                  <input readonly value="${escapeHtml(data.dashboardEndpointUrl || "")}" class="min-w-0 flex-1 rounded-lg border border-line bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none" />
+                  <button data-copy="${escapeHtml(data.dashboardEndpointUrl || "")}" class="copy-button rounded-lg border border-line px-3 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Copy</button>
+                </div>
+              </label>
+              <label class="text-sm">
+                <span class="mb-1 block text-slate-400">API key header</span>
+                <div class="flex gap-2">
+                  <input readonly value="${escapeHtml(headerLine)}" class="min-w-0 flex-1 rounded-lg border border-line bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none" />
+                  <button data-copy="${escapeHtml(headerLine)}" class="copy-button rounded-lg border border-line px-3 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Copy</button>
+                </div>
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <button id="regenerateClientApiKey" class="inline-flex items-center gap-2 rounded-lg border border-red-400/30 px-3 py-2 text-sm text-red-200 hover:border-red-300/60 hover:bg-red-400/10">
+                  <i data-lucide="rotate-cw" class="h-4 w-4"></i>
+                  Regenerate Key
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="rounded-lg border border-line bg-panel/88 p-4">
+            <h2 class="mb-3 font-semibold">Client Details</h2>
+            <div class="space-y-3 text-sm">
+              <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+                <div class="text-xs text-slate-500">Discord Server</div>
+                <div class="mt-1 text-slate-200">${escapeHtml(selectedGuild()?.name || data.guildId || "")}</div>
+                <div class="mt-1 text-xs text-slate-500">${escapeHtml(data.guildId || "")}</div>
+              </div>
+              <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+                <div class="text-xs text-slate-500">Group</div>
+                <div class="mt-1 text-slate-200">${escapeHtml(data.groupName || data.groupId)}</div>
+                <div class="mt-1 text-xs text-slate-500">${escapeHtml(data.groupId || "")}</div>
+              </div>
+              <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+                <div class="text-xs text-slate-500">Signed-in User</div>
+                <div class="mt-1 text-slate-200">${escapeHtml(state.bootstrap?.user?.globalName || state.bootstrap?.user?.username || "")}</div>
+                <div class="mt-1 text-xs text-slate-500">${escapeHtml(state.bootstrap?.user?.id || "")}</div>
+              </div>
+              <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+                <div class="text-xs text-slate-500">Permissions</div>
+                <div class="mt-2 flex flex-wrap gap-2">${(data.permissions || []).map(item => `<span class="rounded-md bg-slate-900 px-2 py-1 text-xs text-slate-300">${escapeHtml(item)}</span>`).join("")}</div>
+              </div>
+              <div class="rounded-lg border border-line bg-slate-950/35 p-3">
+                <div class="text-xs text-slate-500">Test request</div>
+                <code class="mt-2 block whitespace-pre-wrap break-all text-xs text-emerald-200">${escapeHtml(dashboardCurl)}</code>
+              </div>
+            </div>
+          </section>
+        </div>`;
+
+      document.querySelectorAll(".copy-button").forEach(button => {
+        button.addEventListener("click", async () => {
+          const text = button.dataset.copy || "";
+          if (!text) return;
+          await navigator.clipboard?.writeText(text);
+          toast("Copied");
+        });
+      });
+      document.getElementById("regenerateClientApiKey").addEventListener("click", async () => {
+        if (!window.confirm("Regenerate this client API key? The old key will stop working.")) return;
+        await apiPost(`/api/guilds/${state.selectedGuildId}/client-access/regenerate?${groupParam()}`);
+        toast("Client API key regenerated");
+        await renderClientApi({ silent: true });
+      });
+      iconify();
+    }
+
+    async function renderEvents(options = {}) {
+      if (!options.silent) setLoading("Loading audit logs");
+      const q = encodeURIComponent(state.events.q);
+      const type = encodeURIComponent(state.events.type);
+      const data = await api(`/api/guilds/${state.selectedGuildId}/events?${groupParam()}&q=${q}&type=${type}&offset=${state.events.offset}&limit=50`);
+      const typeOptions = [`<option value="">All event types</option>`].concat((data.types || []).map(typeRow =>
+        `<option value="${escapeHtml(typeRow.eventType)}" ${state.events.type === typeRow.eventType ? "selected" : ""}>${escapeHtml(typeRow.eventType)} (${formatNumber(typeRow.count)})</option>`
+      )).join("");
+      els.content.innerHTML = `
+        ${controlsHtml(state.events.q, "Search audit logs", `<select id="typeSelect" class="rounded-lg border border-line bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-400">${typeOptions}</select>`)}
+        <div class="table-shell overflow-auto rounded-lg border border-line bg-panel/88">
+          <table class="w-full min-w-[860px] text-left text-sm">
+            <thead class="sticky top-0 bg-slate-950 text-xs uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="px-4 py-3">Type</th>
+                <th class="px-4 py-3">Target</th>
+                <th class="px-4 py-3">Description</th>
+                <th class="px-4 py-3">Created</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              ${(data.rows || []).map((row, index) => `
+                <tr data-event-index="${index}" class="event-table-row cursor-pointer hover:bg-emerald-400/5">
+                  <td class="px-4 py-3"><span class="rounded-md border px-2 py-1 text-xs ${eventTone(row.eventType)}">${escapeHtml(row.eventType)}</span></td>
+                  <td class="max-w-[220px] truncate px-4 py-3 text-slate-300">${escapeHtml(row.targetId)}</td>
+                  <td class="max-w-[420px] truncate px-4 py-3 text-slate-400">${escapeHtml(row.description)}</td>
+                  <td class="px-4 py-3 text-slate-500">${formatDate(row.createdAt)}</td>
+                </tr>
+              `).join("") || `<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">No audit logs found.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        ${pagerHtml(data, "events")}`;
+      wireSearch("events");
+      document.getElementById("typeSelect").addEventListener("change", event => {
+        state.events.type = event.target.value;
+        state.events.offset = 0;
+        loadTab();
+      });
+      document.querySelectorAll(".event-table-row").forEach(row => {
+        row.addEventListener("click", () => showEventModal(data.rows[Number(row.dataset.eventIndex)]));
+      });
+      wirePager(data, "events");
+      iconify();
+    }
+
+    async function renderUsers(options = {}) {
+      if (!options.silent) setLoading("Loading user counters");
+      const data = await api(`/api/guilds/${state.selectedGuildId}/users?${groupParam()}&q=${encodeURIComponent(state.users.q)}&offset=${state.users.offset}&limit=50`);
+      els.content.innerHTML = `
+        ${controlsHtml(state.users.q, "Search VRChat user id")}
+        <div class="grid gap-3 xl:grid-cols-2">
+          ${(data.rows || []).map(row => userCounterRow(row)).join("") || rowEmpty("No user counters found.")}
+        </div>
+        ${pagerHtml(data, "users")}`;
+      wireSearch("users");
+      wirePager(data, "users");
+      iconify();
+    }
+
+    function segmentButton(kind, current, label) {
+      return `<button data-kind="${kind}" class="segment-button rounded-lg border px-3 py-2 text-sm transition ${kind === current ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-100" : "border-line text-slate-400 hover:border-emerald-400/40 hover:text-emerald-100"}">${label}</button>`;
+    }
+
+    async function renderBlacklists(options = {}) {
+      if (!options.silent) setLoading("Loading blacklist data");
+      const guild = selectedGuild();
+      const canManageAll = Boolean(guild?.canManageAllBlacklists || guild?.canManage);
+      const canManageOwnUsers = Boolean(guild?.canManageOwnUserBlacklists);
+      const canCreate = canManageAll || (state.blacklists.kind === "users" && canManageOwnUsers);
+      const archived = Boolean(state.blacklists.archived);
+      const data = await api(`/api/guilds/${state.selectedGuildId}/blacklists?${groupParam()}&kind=${state.blacklists.kind}&q=${encodeURIComponent(state.blacklists.q)}&archived=${archived ? "true" : "false"}&offset=${state.blacklists.offset}&limit=50`);
+      els.content.innerHTML = `
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap gap-2">
+            ${segmentButton("users", state.blacklists.kind, "Users")}
+            ${segmentButton("avatars", state.blacklists.kind, "Avatars")}
+            ${segmentButton("groups", state.blacklists.kind, "Groups")}
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="toggleBlacklistArchive" class="inline-flex items-center gap-2 rounded-lg border ${archived ? "border-emerald-400/50 bg-emerald-400/10 text-emerald-100" : "border-line text-slate-300"} px-3 py-2 text-sm hover:border-emerald-400/50 hover:text-emerald-200">
+              <i data-lucide="archive" class="h-4 w-4"></i>
+              ${archived ? "Viewing Archive" : "Archive Logs"}
+            </button>
+            ${canCreate && !archived ? `
+              <button id="addBlacklistRow" class="inline-flex items-center gap-2 rounded-lg bg-emerald-400 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-300">
+                <i data-lucide="plus" class="h-4 w-4"></i>
+                Add ${state.blacklists.kind.slice(0, -1)}
+              </button>` : ""}
+          </div>
+        </div>
+        ${controlsHtml(state.blacklists.q, "Search blacklist data")}
+        ${blacklistTable(data.rows || [], state.blacklists.kind, { canManageAll, canManageOwnUsers, archived })}
+        ${pagerHtml(data, "blacklists")}`;
+      wireSegments("blacklists");
+      wireSearch("blacklists");
+      wirePager(data, "blacklists");
+      document.getElementById("toggleBlacklistArchive").addEventListener("click", () => {
+        state.blacklists.archived = !state.blacklists.archived;
+        state.blacklists.offset = 0;
+        loadTab();
+      });
+      document.getElementById("addBlacklistRow")?.addEventListener("click", () => createBlacklistRow(state.blacklists.kind));
+      wireBlacklistActions(data.rows || [], state.blacklists.kind);
+      iconify();
+    }
+
+    async function renderStaff(options = {}) {
+      if (!options.silent) setLoading("Loading staff data");
+      const data = await api(`/api/guilds/${state.selectedGuildId}/blacklists?${groupParam()}&kind=${state.staff.kind}&q=${encodeURIComponent(state.staff.q)}&offset=${state.staff.offset}&limit=50`);
+      els.content.innerHTML = `
+        <div class="mb-4 flex flex-wrap gap-2">
+          ${segmentButton("staff", state.staff.kind, "Staff")}
+          ${segmentButton("queue", state.staff.kind, "Queue")}
+        </div>
+        ${controlsHtml(state.staff.q, state.staff.kind === "staff" ? "Search staff" : "Search queue")}
+        ${state.staff.kind === "staff" ? staffTable(data.rows || []) : queueTable(data.rows || [])}
+        ${pagerHtml(data, "staff")}`;
+      wireSegments("staff");
+      wireSearch("staff");
+      wirePager(data, "staff");
+      iconify();
+    }
+
+    async function renderGlobal(options = {}) {
+      if (!options.silent) setLoading("Loading global shares");
+      const data = await api(`/api/guilds/${state.selectedGuildId}/global-history?${groupParam()}&q=${encodeURIComponent(state.global.q)}&offset=${state.global.offset}&limit=50`);
+      els.content.innerHTML = `
+        ${controlsHtml(state.global.q, "Search global share history")}
+        <div class="table-shell overflow-auto rounded-lg border border-line bg-panel/88">
+          <table class="w-full min-w-[820px] text-left text-sm">
+            <thead class="sticky top-0 bg-slate-950 text-xs uppercase tracking-wider text-slate-500">
+              <tr>
+                <th class="px-4 py-3">VRChat User</th>
+                <th class="px-4 py-3">Action</th>
+                <th class="px-4 py-3">Shared By</th>
+                <th class="px-4 py-3">Mode</th>
+                <th class="px-4 py-3">Created</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              ${(data.rows || []).map(row => `
+                <tr class="hover:bg-emerald-400/5">
+                  <td class="px-4 py-3 text-slate-300">${escapeHtml(row.vrcUserId)}</td>
+                  <td class="px-4 py-3"><span class="rounded-md border px-2 py-1 text-xs ${eventTone(row.action)}">${escapeHtml(row.action)}</span></td>
+                  <td class="px-4 py-3 text-slate-400">${escapeHtml(row.sharedByDiscordTag || row.sharedByDiscordId)}</td>
+                  <td class="px-4 py-3 text-slate-500">${escapeHtml(row.mode)}</td>
+                  <td class="px-4 py-3 text-slate-500">${formatDate(row.createdAt)}</td>
+                </tr>
+              `).join("") || `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No global share history found.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        ${pagerHtml(data, "global")}`;
+      wireSearch("global");
+      wirePager(data, "global");
+      iconify();
+    }
+
+    function blacklistRowId(row) {
+      return String(row?.id || row?.ID || "");
+    }
+
+    function isOwnBlacklistRow(row) {
+      const userId = String(state.bootstrap?.user?.id || "");
+      if (!userId) return false;
+      return [row?.createdBy, row?.updatedBy, row?.moderator, row?.archivedBy]
+        .some(value => String(value || "") === userId);
+    }
+
+    function blacklistRowPermissions(row, kind, caps = {}) {
+      if (caps.archived) return { edit: false, delete: false };
+      if (caps.canManageAll) return { edit: true, delete: true };
+      const ownUserDelete = kind === "users" && caps.canManageOwnUsers && isOwnBlacklistRow(row);
+      return { edit: false, delete: ownUserDelete };
+    }
+
+    function blacklistActionCell(row, kind, caps = {}) {
+      const id = blacklistRowId(row);
+      if (!id) return `<td class="px-4 py-3 text-slate-600">No id</td>`;
+      const permissions = blacklistRowPermissions(row, kind, caps);
+      if (!permissions.edit && !permissions.delete) {
+        return `<td class="px-4 py-3 text-slate-600">No actions</td>`;
+      }
+      return `
+        <td class="px-4 py-3">
+          <div class="flex gap-2">
+            ${permissions.edit ? `<button data-blacklist-edit="${escapeHtml(id)}" class="blacklist-edit rounded-lg border border-line px-2 py-1 text-xs text-slate-300 hover:border-emerald-400/50 hover:text-emerald-200">Edit</button>` : ""}
+            ${permissions.delete ? `<button data-blacklist-delete="${escapeHtml(id)}" class="blacklist-delete rounded-lg border border-red-400/30 px-2 py-1 text-xs text-red-200 hover:border-red-300/60 hover:bg-red-400/10">Delete</button>` : ""}
+          </div>
+        </td>`;
+    }
+
+    function blacklistTable(rows, kind, caps = {}) {
+      const headers = {
+        users: ["Display", "User ID", "Type", "Reason", "Moderator", "Date"],
+        avatars: ["Display", "Creator", "Avatar ID", "Type", "Reason", "Date"],
+        groups: ["Name", "Group ID", "Type", "Reason", "Moderator", "Date"]
+      }[kind] || [];
+      const canShowActions = !caps.archived && (
+        caps.canManageAll ||
+        (kind === "users" && caps.canManageOwnUsers)
+      );
+      if (canShowActions) headers.push("Actions");
+      const body = rows.map(row => {
+        if (kind === "avatars") {
+          return `<tr class="hover:bg-emerald-400/5">
+            <td class="px-4 py-3 text-slate-300">${escapeHtml(row.displayName || "")}</td>
+            <td class="px-4 py-3 text-slate-400">${escapeHtml(row.userId || "")}</td>
+            <td class="px-4 py-3 text-slate-400">${escapeHtml(row.avatarId || "")}</td>
+            <td class="px-4 py-3 text-slate-300">${escapeHtml(row.type || "")}</td>
+            <td class="max-w-[360px] truncate px-4 py-3 text-slate-500">${escapeHtml(row.reason || "")}</td>
+            <td class="px-4 py-3 text-slate-500">${formatDate(row.date || row.createdAt)}</td>
+            ${canShowActions ? blacklistActionCell(row, kind, caps) : ""}
+          </tr>`;
+        }
+        if (kind === "groups") {
+          return `<tr class="hover:bg-emerald-400/5">
+            <td class="px-4 py-3 text-slate-300">${escapeHtml(row.name || "")}</td>
+            <td class="px-4 py-3 text-slate-400">${escapeHtml(row.groupID || "")}</td>
+            <td class="px-4 py-3 text-slate-300">${escapeHtml(row.type || "")}</td>
+            <td class="max-w-[360px] truncate px-4 py-3 text-slate-500">${escapeHtml(row.reason || "")}</td>
+            <td class="px-4 py-3 text-slate-500">${escapeHtml(row.moderator || "")}</td>
+            <td class="px-4 py-3 text-slate-500">${formatDate(row.date || row.createdAt)}</td>
+            ${canShowActions ? blacklistActionCell(row, kind, caps) : ""}
+          </tr>`;
+        }
+        return `<tr class="hover:bg-emerald-400/5">
+          <td class="px-4 py-3 text-slate-300">${escapeHtml(row.displayName || "")}</td>
+          <td class="px-4 py-3 text-slate-400">${escapeHtml(row.userID || "")}</td>
+          <td class="px-4 py-3 text-slate-300">${escapeHtml(row.type || "")}</td>
+          <td class="max-w-[360px] truncate px-4 py-3 text-slate-500">${escapeHtml(row.reason || "")}</td>
+          <td class="px-4 py-3 text-slate-500">${escapeHtml(row.moderator || "")}</td>
+          <td class="px-4 py-3 text-slate-500">${formatDate(row.date || row.createdAt)}</td>
+          ${canShowActions ? blacklistActionCell(row, kind, caps) : ""}
+        </tr>`;
+      }).join("");
+      return table(headers, body, "No blacklist rows found.");
+    }
+
+    function promptField(label, value = "", required = false) {
+      const result = window.prompt(label, value || "");
+      if (result === null) return null;
+      const trimmed = result.trim();
+      if (required && !trimmed) {
+        toast(`${label} is required`, "error");
+        return null;
+      }
+      return trimmed;
+    }
+
+    function promptBlacklistPayload(kind, row = {}) {
+      const type = promptField("Type, for example CRASHER, RIPPER, TOXIC, WATCHLIST", row.type || "UNKNOWN", true);
+      if (type === null) return null;
+      const reason = promptField("Reason", row.reason || "", false);
+      if (reason === null) return null;
+
+      if (kind === "avatars") {
+        const avatarId = promptField("VRChat avatar ID", row.avatarId || row.avatarID || "", true);
+        if (avatarId === null) return null;
+        const displayName = promptField("Avatar name", row.displayName || "", false);
+        if (displayName === null) return null;
+        const userId = promptField("Creator VRChat user ID", row.userId || row.userID || "", false);
+        if (userId === null) return null;
+        return { avatarId, displayName, userId, type, reason };
+      }
+
+      if (kind === "groups") {
+        const groupID = promptField("VRChat group ID", row.groupID || row.groupId || "", true);
+        if (groupID === null) return null;
+        const name = promptField("VRChat group name", row.name || row.groupName || "", false);
+        if (name === null) return null;
+        const publicValue = promptField("Show in public safety endpoints? true/false", row.public ? "true" : "false", false);
+        if (publicValue === null) return null;
+        const isPublic = ["1", "true", "yes", "on"].includes(publicValue.toLowerCase());
+        return { groupID, name, type, reason, public: isPublic };
+      }
+
+      const userID = promptField("VRChat user ID", row.userID || row.userId || "", true);
+      if (userID === null) return null;
+      const displayName = promptField("VRChat display name", row.displayName || "", false);
+      if (displayName === null) return null;
+      const watchlist = window.confirm("Mark as watchlist instead of a normal blacklist hit?");
+      return { userID, displayName, type, reason, watchlist };
+    }
+
+    function blacklistApiPath(kind, id = "") {
+      const suffix = id ? `/${encodeURIComponent(id)}` : "";
+      return `/api/guilds/${state.selectedGuildId}/blacklists/${kind}${suffix}?${groupParam()}`;
+    }
+
+    async function createBlacklistRow(kind) {
+      const payload = promptBlacklistPayload(kind);
+      if (!payload) return;
+      try {
+        await apiPost(blacklistApiPath(kind), payload);
+        toast("Blacklist row added");
+        await renderBlacklists({ silent: true });
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    }
+
+    async function editBlacklistRow(kind, row) {
+      const id = blacklistRowId(row);
+      const payload = promptBlacklistPayload(kind, row);
+      if (!id || !payload) return;
+      try {
+        await apiPatch(blacklistApiPath(kind, id), payload);
+        toast("Blacklist row updated");
+        await renderBlacklists({ silent: true });
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    }
+
+    async function archiveBlacklistRow(kind, row) {
+      const id = blacklistRowId(row);
+      if (!id) return;
+      if (!window.confirm("Delete this active blacklist row? It will be archived for history instead of hard-deleted.")) return;
+      try {
+        await apiDelete(blacklistApiPath(kind, id));
+        toast("Blacklist row archived");
+        await renderBlacklists({ silent: true });
+      } catch (err) {
+        toast(err.message, "error");
+      }
+    }
+
+    function wireBlacklistActions(rows, kind) {
+      const byId = new Map(rows.map(row => [blacklistRowId(row), row]));
+      document.querySelectorAll(".blacklist-edit").forEach(button => {
+        button.addEventListener("click", () => editBlacklistRow(kind, byId.get(button.dataset.blacklistEdit)));
+      });
+      document.querySelectorAll(".blacklist-delete").forEach(button => {
+        button.addEventListener("click", () => archiveBlacklistRow(kind, byId.get(button.dataset.blacklistDelete)));
+      });
+    }
+
+    function staffTable(rows) {
+      const body = rows.map(row => `
+        <tr class="hover:bg-emerald-400/5">
+          <td class="px-4 py-3 text-slate-300">${escapeHtml(row.displayName || "")}</td>
+          <td class="px-4 py-3 text-slate-400">${escapeHtml(row.userId || "")}</td>
+          <td class="px-4 py-3 text-slate-300">${escapeHtml(row.role || "")}</td>
+          <td class="px-4 py-3 text-slate-500">${row.active ? "Active" : "Inactive"}</td>
+          <td class="px-4 py-3 text-slate-500">${formatDate(row.dateadded || row.createdAt)}</td>
+        </tr>`).join("");
+      return table(["Display", "Discord User", "Role", "State", "Added"], body, "No staff rows found.");
+    }
+
+    function queueTable(rows) {
+      const body = rows.map(row => `
+        <tr class="hover:bg-emerald-400/5">
+          <td class="px-4 py-3 text-slate-300">${escapeHtml(row.userId || "")}</td>
+          <td class="px-4 py-3 text-slate-400">${escapeHtml(row.actions || "")}</td>
+          <td class="px-4 py-3 text-slate-400">${escapeHtml(row.groupName || row.groupId || "")}</td>
+          <td class="px-4 py-3 text-slate-500">${formatDate(row.createdAt)}</td>
+        </tr>`).join("");
+      return table(["VRChat User", "Action", "Group", "Created"], body, "No queue rows found.");
+    }
+
+    function table(headers, body, empty) {
+      return `
+        <div class="table-shell overflow-auto rounded-lg border border-line bg-panel/88">
+          <table class="w-full min-w-[780px] text-left text-sm">
+            <thead class="sticky top-0 bg-slate-950 text-xs uppercase tracking-wider text-slate-500">
+              <tr>${headers.map(item => `<th class="px-4 py-3">${escapeHtml(item)}</th>`).join("")}</tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              ${body || `<tr><td colspan="${headers.length}" class="px-4 py-8 text-center text-slate-500">${escapeHtml(empty)}</td></tr>`}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function pagerHtml(data, bucket) {
+      const offset = Number(data.offset || 0);
+      const limit = Number(data.limit || 50);
+      const count = Number(data.count || 0);
+      const end = Math.min(offset + limit, count);
+      return `
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+          <span>${count ? `${formatNumber(offset + 1)}-${formatNumber(end)} of ${formatNumber(count)}` : "0 rows"}</span>
+          <div class="flex gap-2">
+            <button data-page-dir="-1" data-bucket="${bucket}" ${offset <= 0 ? "disabled" : ""} class="pager-button inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-slate-300 hover:border-emerald-400/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line">
+              <i data-lucide="chevron-left" class="h-4 w-4"></i>
+              Prev
+            </button>
+            <button data-page-dir="1" data-bucket="${bucket}" ${offset + limit >= count ? "disabled" : ""} class="pager-button inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-slate-300 hover:border-emerald-400/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line">
+              Next
+              <i data-lucide="chevron-right" class="h-4 w-4"></i>
+            </button>
+          </div>
+        </div>`;
+    }
+
+    function wireSearch(bucket) {
+      const input = document.getElementById("searchInput");
+      const button = document.getElementById("searchButton");
+      const apply = () => {
+        state[bucket].q = input.value.trim();
+        state[bucket].offset = 0;
+        loadTab();
+      };
+      button.addEventListener("click", apply);
+      input.addEventListener("keydown", event => {
+        if (event.key === "Enter") apply();
+      });
+    }
+
+    function wireSegments(bucket) {
+      document.querySelectorAll(".segment-button").forEach(button => {
+        button.addEventListener("click", () => {
+          state[bucket].kind = button.dataset.kind;
+          state[bucket].offset = 0;
+          loadTab();
+        });
+      });
+    }
+
+    function wirePager(data, bucket) {
+      document.querySelectorAll(".pager-button").forEach(button => {
+        button.addEventListener("click", () => {
+          const limit = Number(data.limit || 50);
+          state[bucket].offset = Math.max(0, Number(state[bucket].offset || 0) + Number(button.dataset.pageDir) * limit);
+          loadTab();
+        });
+      });
+    }
+
+    function showEventModal(row) {
+      if (!row) return;
+      els.modalTitle.textContent = row.eventType || "Audit event";
+      els.modalSubtitle.textContent = `${row.targetId || "No target"} · ${formatDate(row.createdAt)}`;
+      let payload = row.json || row;
+      if (typeof payload === "string") {
+        try { payload = JSON.parse(payload); } catch {}
+      }
+      els.modalBody.textContent = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+      els.modal.classList.remove("hidden");
+      els.modal.classList.add("flex");
+      iconify();
+    }
+
+    function closeModal() {
+      els.modal.classList.add("hidden");
+      els.modal.classList.remove("flex");
+    }
+
+    async function loadTab(options = {}) {
+      if (!state.selectedGuildId) return;
+      if (!state.selectedGroupId && !["setup", "joinInvites"].includes(state.tab)) return;
+      const silent = Boolean(options.silent);
+      updateHeader();
+      try {
+        if (state.tab === "overview") {
+          if (!silent) setLoading("Loading overview");
+          const data = await api(`/api/guilds/${state.selectedGuildId}/overview?${groupParam()}`);
+          renderOverview(data);
+          return;
+        }
+        if (state.tab === "setup") return await renderSetup({ silent });
+        if (state.tab === "joinInvites") return await renderJoinInvites({ silent });
+        if (state.tab === "clientApi") return await renderClientApi({ silent });
+        if (state.tab === "events") return await renderEvents({ silent });
+        if (state.tab === "users") return await renderUsers({ silent });
+        if (state.tab === "blacklists") return await renderBlacklists({ silent });
+        if (state.tab === "staff") return await renderStaff({ silent });
+        if (state.tab === "global") return await renderGlobal({ silent });
+      } catch (err) {
+        if (err.message !== "Not authenticated") {
+          errorPanel(err.message);
+          toast(err.message, "error");
+        }
+      }
+    }
+
+    async function boot() {
+      try {
+        const res = await fetch("/api/bootstrap", { headers: { Accept: "application/json" } });
+        const data = await res.json().catch(() => ({}));
+        if (data.setupRequired) {
+          els.setupDetails.innerHTML = `
+            <div class="rounded-lg border border-line bg-slate-950/60 p-3">
+              <div class="mb-2 text-slate-400">Missing</div>
+              <div class="flex flex-wrap gap-2">${(data.missing || []).map(item => `<span class="rounded-md bg-amber-400/10 px-2 py-1 text-amber-200">${escapeHtml(item)}</span>`).join("")}</div>
+            </div>
+            <div class="rounded-lg border border-line bg-slate-950/60 p-3">
+              <div class="mb-2 text-slate-400">Discord redirect URI</div>
+              <code class="break-all text-emerald-200">${escapeHtml(data.expectedRedirectUri || "")}</code>
+            </div>`;
+          showOnly("setup");
+          return;
+        }
+        if (res.status === 401) {
+          showOnly("auth");
+          return;
+        }
+        if (!res.ok) throw new Error(data.error || "Failed loading dashboard");
+        state.bootstrap = data;
+        if (!data.guilds?.length) {
+          showOnly("empty");
+          return;
+        }
+        state.selectedGuildId = data.guilds[0].id;
+        state.selectedGroupId = data.guilds[0].groups?.[0]?.id || "";
+        showOnly("app");
+        renderShell();
+        await loadTab();
+        startLiveStream();
+      } catch (err) {
+        showOnly("auth");
+        toast(err.message || "Dashboard failed to start", "error");
+      }
+    }
+
+    document.getElementById("refreshButton").addEventListener("click", () => {
+      toast("Refreshing dashboard");
+      loadTab();
+    });
+
+    document.getElementById("notifyButton").addEventListener("click", () => {
+      const group = selectedGroup();
+      toast(`${group?.name || "Group"} data is scoped to this VRChat group.`);
+    });
+
+    document.getElementById("closeModal").addEventListener("click", closeModal);
+    els.modal.addEventListener("click", event => {
+      if (event.target === els.modal) closeModal();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closeModal();
+    });
+    window.addEventListener("beforeunload", closeLiveStream);
+
+    boot();
+  </script>
+</body>
+</html>

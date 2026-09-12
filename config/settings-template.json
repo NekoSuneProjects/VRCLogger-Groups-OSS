@@ -1,0 +1,107 @@
+{
+  "token": "",
+  "clientname": "BanLogger",
+  "clientid": "",
+  "clientavatar": "https://cdn.discordapp.com/avatars/783717422355578890/22f6678f49e84ee0afafa1430c844f59.png",
+  "prefix": "chisp!",
+  "developerID": [
+    "100463282099326976"
+  ],
+  "colorthemecode": "#FF5733",
+  "randomMessages_Cooldown": [
+    "Slow It Down Fam...",
+    "Spam Isn't Cool Fam....",
+    "Get Premium dude...",
+    "Never Gonna Let You Down"
+  ],
+  "embedcfg": {
+    "colors": {
+      "succes": "#57F287",
+      "error": "#ED4245",
+      "normal": "#5865F2",
+      "Danger": "0xff0000",
+      "Success": "0x00ff00"
+    },
+    "discord": {
+      "footer": "Copyright NekoSuneVR 2021 - 2026"
+    }
+  },
+  "helpdesk": {
+    "email": "you@example.com",
+    "defaultModerationCategory": "Harassment"
+  },
+  "DASHBOARD": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 3434,
+    "baseUrl": "http://127.0.0.1:3434",
+    "discordClientId": "",
+    "discordClientSecret": "",
+    "sessionSecret": "CHANGE_ME_TO_A_LONG_RANDOM_SECRET",
+    "adminDiscordIds": [],
+    "cache": {
+      "enabled": true,
+      "ttlSeconds": 300,
+      "namespace": "banlogger:dashboard",
+      "redis": {
+        "enabled": false,
+        "url": "",
+        "host": "127.0.0.1",
+        "port": 6379,
+        "username": "",
+        "password": "",
+        "db": 0,
+        "tls": false,
+        "timeoutMs": 2000
+      }
+    }
+  },
+  "TestingServerID": "DISCORD_SERVER_ID",
+  "SQL": {
+    "HOST": "",
+    "PORT": 3306,
+    "USER": "",
+    "PASS": "",
+    "DB": "VRCLogger"
+  },
+  "VRCAPI": {
+    "VRCBackEndURL": "http://127.0.0.1:3077",
+    "VRCProxyNode": "http://127.0.0.1:3401",
+    "groupid": "grp_xxx",
+    "groupName": "Main Group",
+    "ownerDiscordIds": [
+      "DISCORD_USER_ID_OWNER_1"
+    ],
+    "globalAnalytics": {
+      "autoShare": false
+    },
+    "ACCESS": {
+      "ban": ["owner", "co-owner", "admin"],
+      "unban": ["owner", "co-owner"],
+      "blacklister": ["owner", "co-owner", "admin"],
+      "reacted": ["owner", "co-owner"],
+      "requester": ["owner", "co-owner"],
+      "tags": ["owner", "co-owner", "admin", "mod", "trainee", "it-tech"],
+      "userlookup": ["owner", "co-owner", "admin", "it-tech"]
+    },
+    "LoggerCategoryId": "",
+    "reqnotify": {
+      "enable": false,
+      "REQCHANNEL": ""
+    },
+    "LoggerTextChannel": {
+      "JOINMEMBER": "",
+      "LEAVEMEMBER": "",
+      "REMOVEMEMBER": "",
+      "UNBANMEMBER": "",
+      "KICKMEMBER": "",
+      "BANMEMBER": "",
+      "WARNMEMBER": "",
+      "WORLDCREATEMEMBER": "",
+      "WORLDCLOSEMEMBER": "",
+      "ANNOUNCEMENT": "",
+      "GENERAL": "",
+      "VOICE": ""
+    }
+  }
+}
