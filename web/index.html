@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BanLogger Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+    <style>
+        body {
+            background-color: #121212;
+            /* Dark background */
+            color: #fff;
+            /* White text */
+        }
+
+        .nav-tabs .nav-link.active {
+            background-color: #343a40;
+            /* Dark tab background */
+            border-color: #343a40;
+        }
+
+        .tab-content {
+            margin-top: 20px;
+        }
+
+        .container-fluid {
+            padding: 20px;
+        }
+
+        .logsDiv {
+            overflow-y: auto;
+            height: 400px;
+            /* Fixed height */
+            background-color: #212529;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #logs p {
+            color: pink;
+            /* Logs text color */
+        }
+
+        .btn-toggle {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        @media (max-width: 576px) {
+            .card-header {
+                font-size: 1.2rem;
+                text-align: center;
+            }
+
+            .form-label {
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                width: 100%;
+                margin-top: 10px;
+            }
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table-dark th,
+        .table-dark td {
+            white-space: nowrap;
+        }
+
+        .modal-dialog {
+            z-index: 1050;
+            /* Increase the z-index value to make it overlap the settings page */
+        }
+
+        .modal-backdrop {
+            z-index: 1040;
+            /* Set the z-index value for the modal backdrop */
+        }
+
+        #warningModal {
+            z-index: 1050;
+            /* Increase the z-index value to make it overlap the settings page */
+            display: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background-color: #1e1e1e;
+            /* Dark theme background */
+            color: #ffffff;
+            /* Light text color */
+        }
+
+        th,
+        td {
+            padding: 8px 12px;
+            border: 1px solid #444;
+            /* Border color */
+            text-align: left;
+        }
+
+        th {
+            background-color: #292929;
+            /* Darker background for headers */
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #252525;
+            /* Alternating row color */
+        }
+
+        tr:hover {
+            background-color: #333;
+            /* Highlight row on hover */
+        }
+
+        .log-image {
+            max-width: 80px;
+            /* Slightly smaller */
+            height: auto;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .log-image:hover {
+            transform: scale(1.1);
+        }
+
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            /* Ensures it stays on top */
+        }
+
+        .modal-content {
+            position: relative;
+            background: #222;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .full-image {
+            max-width: 90vw;
+            max-height: 80vh;
+            border-radius: 5px;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.2s ease-in-out;
+        }
+
+        .close-button:hover {
+            background: darkred;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="bg-dark text-white text-center py-3">
+        <h1>VRChat Log Monitor</h1>
+    </header>
+    <!-- Tab Content -->
+    <div class="container-fluid">
+        <ul class="nav nav-tabs" id="logTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="main-log-tab" data-bs-toggle="tab" href="#main-log" role="tab">
+                    Main Log
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="joining-leaving-tab" data-bs-toggle="tab" href="#joining-leaving" role="tab">
+                    Joining/Leaving
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="detect-known-blacklist-tab" data-bs-toggle="tab" href="#detect-known-blacklist"
+                    role="tab">
+                    Detect Known Blacklist
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="avatar-switch-blacklist-tab" data-bs-toggle="tab"
+                    href="#avatar-switch-blacklist" role="tab">
+                    Avatar Switch Blacklist
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="assets-blacklist-tab" data-bs-toggle="tab" href="#assets-blacklist" role="tab">
+                    Assets Logger
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="avatars-seen-tab" data-bs-toggle="tab" href="#avatars-seen" role="tab">
+                    Avatars Seen
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="moderation-logs-tab" data-bs-toggle="tab" href="#moderation-logs" role="tab">
+                    Moderation Logs
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="settings-tab" data-bs-toggle="tab" href="#settings" role="tab">
+                    Settings
+                </a>
+            </li>
+        </ul>
+        <div class="tab-content" id="logTabContent">
+            <!-- Logs Tab -->
+            <div class="tab-pane fade show active" id="main-log" role="tabpanel">
+                <div class="logsDiv" id="mainLogContent"></div>
+            </div>
+            <div class="tab-pane fade" id="joining-leaving" role="tabpanel">
+                <div class="logsDiv" id="joiningLeavingContent"></div>
+            </div>
+            <div class="tab-pane fade" id="detect-known-blacklist" role="tabpanel">
+                <div class="logsDiv" id="detectKnownBlacklistContent"></div>
+            </div>
+            <div class="tab-pane fade" id="avatar-switch-blacklist" role="tabpanel">
+                <div class="logsDiv" id="avatarSwitchContent"></div>
+            </div>
+            <div class="tab-pane fade" id="assets-blacklist" role="tabpanel">
+                <div class="logsDiv" id="assetsContent">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Timestamp</th>
+                                <th>UserID</th>
+                                <th>DisplayName</th>
+                                <th>Image</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assetsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="avatars-seen" role="tabpanel">
+                <div class="logsDiv" id="avatarsSeenContent">
+                    <table class="table table-dark table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Avatar Name</th>
+                                <th>Thumbnail</th>
+                                <th>Avatar ID</th>
+                                <th>Author</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="avatarsSeenTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="moderation-logs" role="tabpanel">
+                <div class="logsDiv" id="moderationLogsContent"></div>
+            </div>
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings" role="tabpanel">
+                <div class="row">
+                    <!-- Warning Modal -->
+                    <div class="modal fade" id="warningModal" tabindex="-1" aria-labelledby="warningModalLabel"
+                        aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content bg-dark text-white">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="warningModalLabel">
+                                        Warning
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body" id="warningModalBody">
+                                    <!-- Warning message will be inserted here -->
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Safety Toggle Options -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card bg-dark text-white">
+                            <div class="card-header">
+                                Safety Toggle Options
+                            </div>
+                            <div class="card-body">
+                                <div id="safetytoggleOptions"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Toggle Options -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card bg-dark text-white">
+                            <div class="card-header">Toggle Options</div>
+                            <div class="card-body">
+                                <div id="toggleOptions"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- VRC Logger API Setup -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card bg-dark text-white">
+                            <div class="card-header">VRC Logger API</div>
+                            <div class="card-body">
+                                <div id="apikeysOptions"></div>
+                            </div>
+                            <div class="card-header">Save Options</div>
+                            <div class="card-body">
+                                <form id="debugSettingsForm">
+                                    <button type="button" class="btn btn-success" onclick="saveConfig()">
+                                        Save Settings
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card bg-dark text-white">
+                            <div class="card-header">OBS Overlay</div>
+                            <div class="card-body">
+                                <div id="overlayUrl" class="small text-white-50"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="text-center mt-5">
+        <h2>Copyright © 2025 NekoSuneProjects (Former VRChat Guardian Angel & Project Dark Star)</h2>
+    </footer>
+    <!-- Scripts -->
+    <!-- Load JS dependencies -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"
+        integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js"
+        integrity="sha384-cuYeSxntonz0PPNlHhBs68uyIAVpIIOZZ5JqeqvYYIcEL727kskC66kF92t6Xl2V"
+        crossorigin="anonymous"></script>
+    <script>
+        window.appInfo.getVersion().then((version) => {
+            document.title = `VRCLogger Monitor v${version}`;
+        });
+        // Predefined log container elements
+        const logsDivMain = document.getElementById("mainLogContent");
+        const logsDivJoinLeave = document.getElementById(
+            "joiningLeavingContent"
+        );
+        const logsDivModLogs = document.getElementById(
+            "moderationLogsContent"
+        );
+
+        const logsDivBlacklist = document.getElementById(
+            "detectKnownBlacklistContent"
+        );
+
+        const logsDivAvatarSwitch = document.getElementById(
+            "avatarSwitchContent"
+        );
+
+        const logsDivassets = document.getElementById(
+            "assetsContent"
+        );
+        const avatarsSeenTableBody = document.getElementById(
+            "avatarsSeenTableBody"
+        );
+        const avatarsSeen = new Map();
+
+        function displayImageFullscreen(imageSrc) {
+            const modal = document.createElement("div");
+            modal.classList.add("image-modal");
+
+            const modalContent = document.createElement("div");
+            modalContent.classList.add("modal-content");
+
+            const closeButton = document.createElement("button");
+            closeButton.textContent = "X";
+            closeButton.classList.add("close-button");
+            closeButton.onclick = () => modal.remove();
+
+            const fullImage = document.createElement("img");
+            fullImage.src = imageSrc;
+            fullImage.classList.add("full-image");
+
+            modalContent.appendChild(closeButton);
+            modalContent.appendChild(fullImage);
+            modal.appendChild(modalContent);
+
+            document.body.appendChild(modal);
+        }
+
+        const requestQueue = [];
+        let isProcessing = false;
+        const requestDelay = 10 * 1000; // 10 seconds delay
+
+
+        async function processQueue() {
+            if (isProcessing || requestQueue.length === 0) return;
+
+            isProcessing = true;
+            while (requestQueue.length > 0) {
+                const printId = requestQueue.shift(); // Get the next request
+                await fetchPrintImage(printId);
+                await new Promise(resolve => setTimeout(resolve, requestDelay)); // Wait before next request
+            }
+            isProcessing = false;
+        }
+
+        async function fetchPrintImage(printId) {
+            try {
+                const apiUrl = await window.api.getApiEndpoint(); // Get API URL from main process
+                const response = await fetch(`${apiUrl}/v5/games/api/vrchat/yoinker/getPrints/${printId}`, {
+                    headers: { Accept: "application/json" }
+                });
+                const data = await response.json();
+                imageUrl = data.data.files.image;
+                displayImage(imageUrl, "Print", Date.now(), data.data);
+            } catch (error) {
+                console.error("Error fetching print image:", error);
+            }
+        }
+
+        function getStickerRoute(stickerId, ownerId) {
+            return String(stickerId || "").startsWith("inv_") && ownerId
+                ? `/v5/games/api/vrchat/yoinker/getSticker/${encodeURIComponent(ownerId)}/${encodeURIComponent(stickerId)}`
+                : `/v5/games/api/vrchat/yoinker/getSticker/${encodeURIComponent(stickerId)}`;
+        }
+
+        function findImageUrl(value, depth = 0) {
+            if (!value || depth > 5) return "";
+            if (typeof value === "string") {
+                return /^https?:\/\//i.test(value) ? value : "";
+            }
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    const found = findImageUrl(item, depth + 1);
+                    if (found) return found;
+                }
+                return "";
+            }
+            if (typeof value !== "object") return "";
+
+            const direct =
+                value.imageUrl ||
+                value.url ||
+                value.files?.image ||
+                value.metadata?.imageUrl ||
+                value.data?.files?.image ||
+                value.data?.imageUrl ||
+                value.data?.metadata?.imageUrl;
+
+            if (direct) return direct;
+
+            for (const nested of Object.values(value)) {
+                const found = findImageUrl(nested, depth + 1);
+                if (found) return found;
+            }
+
+            return "";
+        }
+
+        function getStickerImageUrl(data) {
+            return findImageUrl(data);
+        }
+
+        async function fetchStickerImage(stickerId, ownerId, ownerName) {
+            const route = getStickerRoute(stickerId, ownerId);
+            try {
+                const apiUrl = await window.api.getApiEndpoint();
+                const response = await fetch(`${apiUrl}${route}`, {
+                    headers: { Accept: "application/json" }
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data?.message || data?.error || `Sticker request failed: ${response.status}`);
+                }
+                const imageUrl = getStickerImageUrl(data);
+                displayImage(imageUrl || "", "Sticker", Date.now(), {
+                    ownerId,
+                    ownerName,
+                    assetId: stickerId,
+                    statusMessage: imageUrl ? "" : `No imageUrl returned from ${route}`
+                });
+            } catch (error) {
+                console.error("Error fetching sticker image:", error);
+                displayImage("", "Sticker", Date.now(), {
+                    ownerId,
+                    ownerName,
+                    assetId: stickerId,
+                    statusMessage: `${error.message} (${route})`
+                });
+            }
+        }
+
+        function queueFetchPrintImage(printId) {
+            requestQueue.push(printId);
+        }
+
+        // ✅ Process queue every 10 seconds
+        setInterval(async () => {
+            if (requestQueue.length > 0) {
+                const printId = requestQueue.shift(); // Get next request
+                await fetchPrintImage(printId);
+            }
+        }, requestDelay);
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+
+            const day = String(date.getDate()).padStart(2, "0");
+            const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            const seconds = String(date.getSeconds()).padStart(2, "0");
+
+            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+        }
+
+        async function displayImage(url, type, timestamp, data) {
+            const tableRow = document.createElement("tr");
+
+            const typeCell = document.createElement("td");
+            typeCell.textContent = type;
+
+            const timestampCell = document.createElement("td");
+            timestampCell.textContent = formatTimestamp(timestamp);
+
+            const userIdCell = document.createElement("td");
+            userIdCell.textContent = data[1] || data.ownerId;
+
+            const displayNameCell = document.createElement("td");
+            displayNameCell.textContent = data[2] || data.ownerName;
+
+            const imageCell = document.createElement("td");
+            if (url) {
+                const image = document.createElement("img");
+                image.src = url;
+                image.title = data.assetId || "";
+                image.classList.add("log-image");
+                image.style.maxWidth = "50px"; // Reduce image size
+                image.style.height = "50px"; // Maintain aspect ratio
+                image.onclick = () => displayImageFullscreen(url);
+                imageCell.appendChild(image);
+            } else {
+                imageCell.textContent = data.statusMessage
+                    ? `${data.statusMessage} (${data.assetId || "unknown"})`
+                    : data.assetId
+                    ? `No image available (${data.assetId})`
+                    : "No image available";
+            }
+            tableRow.appendChild(typeCell);
+            tableRow.appendChild(timestampCell);
+            tableRow.appendChild(userIdCell);
+            tableRow.appendChild(displayNameCell);
+            tableRow.appendChild(imageCell);
+
+            const tableBody = document.getElementById("assetsTableBody");
+            tableBody.prepend(tableRow); // Insert latest entries at the top
+
+            const userId = data[1] || data.ownerId || "Uknown";
+            const displayName = data[2] || data.ownerName || "Uknown";
+
+            // Auto-scroll to the bottom
+            tableBody.scrollTop = tableBody.scrollHeight;
+        }
+
+        function renderAvatarSeenRow(avatar) {
+            if (!avatarsSeenTableBody || !avatar.fileId) return;
+
+            avatarsSeen.set(avatar.fileId, {
+                ...(avatarsSeen.get(avatar.fileId) || {}),
+                ...avatar
+            });
+
+            avatarsSeenTableBody.innerHTML = "";
+            for (const item of avatarsSeen.values()) {
+                const tableRow = document.createElement("tr");
+                tableRow.style.cursor = "pointer";
+                tableRow.onclick = () => showAvatarDetails(item.fileId);
+                tableRow.innerHTML = `
+                    <td>${escapeHtml(item.avatarName || "Unknown Avatar")}</td>
+                    <td>${item.thumbnailUrl ? `<img src="${escapeHtml(item.thumbnailUrl)}" style="width:50px;height:50px;object-fit:cover;">` : ""}</td>
+                    <td>${escapeHtml(item.fileId || item.avatarId || "Unknown")}</td>
+                    <td>${escapeHtml(item.authorName || "Unknown Author")}</td>
+                    <td>${escapeHtml(item.loaded ? "Loaded" : item.status || "Please wait, avatar stats are still loading.")}</td>
+                `;
+                avatarsSeenTableBody.prepend(tableRow);
+            }
+        }
+
+        function showAvatarDetails(fileId) {
+            const avatar = avatarsSeen.get(fileId);
+            if (!avatar) return;
+            const stats = avatar.avatarStats;
+            const detailText = stats
+                ? JSON.stringify(stats, null, 2)
+                : "Please wait, avatar stats are still loading.";
+
+            const modal = document.createElement("div");
+            modal.classList.add("image-modal");
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <button class="close-button" type="button">X</button>
+                    <h4>${escapeHtml(avatar.avatarName || "Unknown Avatar")}</h4>
+                    <p>${escapeHtml(avatar.fileId || "")}</p>
+                    <pre style="white-space:pre-wrap;text-align:left;max-width:80vw;">${escapeHtml(detailText)}</pre>
+                </div>
+            `;
+            modal.querySelector(".close-button").onclick = () => modal.remove();
+            document.body.appendChild(modal);
+        }
+
+        window.addEventListener("message", (event) => {
+            console.log("Received message:", event.data); // Add this line
+            let logElement;
+            switch (event.data.type) {
+                case "mainlog":
+                    logElement = document.createElement("p");
+                    logElement.innerHTML = event.data.message; // Use innerHTML to allow HTML content
+                    logsDivMain.appendChild(logElement);
+                    logsDivMain.scrollTop = logsDivMain.scrollHeight;
+                    break;
+                case "joinleavelog":
+                    logElement = document.createElement("p");
+                    logElement.innerHTML = event.data.message; // Use innerHTML to allow HTML content
+                    logsDivJoinLeave.appendChild(logElement);
+                    logsDivJoinLeave.scrollTop =
+                        logsDivJoinLeave.scrollHeight;
+                    break;
+                case "modlog":
+                    logElement = document.createElement("p");
+                    logElement.innerHTML = event.data.message; // Use innerHTML to allow HTML content
+                    logsDivModLogs.appendChild(logElement);
+                    logsDivModLogs.scrollTop = logsDivModLogs.scrollHeight;
+
+                    const logContainer = document.createElement("div");
+                    logContainer.classList.add("log-entry");
+
+                    let timestamp;
+
+                    const timestampMatch = event.data.message.match(/<t:(\d+):f>/);
+                    if (timestampMatch && timestampMatch[1]) {
+                        const unixTime = parseInt(timestampMatch[1], 10) * 1000; // ensure it's base 10
+                        timestamp = new Date(unixTime).toLocaleString();
+                    } else {
+                        timestamp = new Date(Math.floor(Date.now() / 1000) * 1000); // fallback to current datetime
+                    }
+
+                    let imageUrl = "";
+                    let type = "Unknown";
+                    let printMatch = event.data.message.match(/API Requested print file\s+(prnt_[\w-]+)/);
+                    let stickerMatch = event.data.message.match(/\[?StickersManager\]?.*?User\s+(usr_[\w-]+)\s+\((.*?)\)\s+spawned\s+sticker\s+((?:file|inv)_[\w-]+)/);
+
+
+                    if (printMatch) {
+                        type = "Print";
+                        queueFetchPrintImage(printMatch[1]);
+                    } else if (stickerMatch) {
+                        type = "Sticker";
+                        const userId = stickerMatch[1];
+                        const displayName = stickerMatch[2];
+                        const stickerId = stickerMatch[3];
+
+                        fetchStickerImage(stickerId, userId, displayName);
+                    }
+
+                    break;
+                case "avatarlog":
+                    try {
+                        const data = JSON.parse(event.data.message);
+                        renderAvatarSeenRow({
+                            fileId: data.fileId,
+                            fileVersion: data.fileVersion,
+                            avatarName: data.avatarName,
+                            thumbnailUrl: data.thumbnailUrl,
+                            authorName: data.authorName,
+                            loaded: data.event === "avatarStats",
+                            status: data.status,
+                            avatarStats: data.avatarStats,
+                            performanceRating: data.performanceRating,
+                            fileSize: data.fileSize,
+                            uncompressedSize: data.uncompressedSize
+                        });
+                    } catch (error) {
+                        console.error("Failed to render avatar log:", error);
+                    }
+                    break;
+                case "avatarswitchlog":
+                    logElement = document.createElement("p");
+                    logElement.innerHTML = event.data.message; // Use innerHTML to allow HTML content
+                    logsDivAvatarSwitch.appendChild(logElement);
+                    logsDivAvatarSwitch.scrollTop =
+                        logsDivAvatarSwitch.scrollHeight;
+                    break;
+                case "blacklistlog":
+                    logElement = document.createElement("p");
+                    logElement.innerHTML = event.data.message; // Use innerHTML to allow HTML content
+                    logsDivBlacklist.appendChild(logElement);
+                    logsDivBlacklist.scrollTop =
+                        logsDivBlacklist.scrollHeight;
+                    break;
+                default:
+                    console.warn("Unknown log type:", event.data.type);
+                    break;
+            }
+        });
+    </script>
+    <script>
+        const cacheOptions = {};
+        const directoriesOptions = {};
+        const vrcxOptions = {};
+        const toggleOptions = {};
+        const privacyandsafetyOptions = {};
+        const savedUserConfig = "";
+        const ApiKeysOptions = {};
+        const vrcLoggerApiOptions = {};
+        const vrcLoggerAuthorizedGroups = [];
+
+        const DEFAULT_VRCLOGGER_HEADER_NAME = "vrclogger-api-key";
+
+        function trimTrailingSlash(value) {
+            return String(value || "").trim().replace(/\/+$/g, "");
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function maskApiKey(apiKey) {
+            const value = String(apiKey || "");
+            return value ? `${value.slice(0, 8)}...` : "";
+        }
+
+        function parseApiHeaderLine(headerLine) {
+            const value = String(headerLine || "").trim();
+            const separatorIndex = value.indexOf(":");
+
+            if (!value) {
+                return {};
+            }
+
+            if (separatorIndex === -1) {
+                return { apiKey: value };
+            }
+
+            return {
+                headerName: value.slice(0, separatorIndex).trim(),
+                apiKey: value.slice(separatorIndex + 1).trim()
+            };
+        }
+
+        function isConfiguredApiKey(apiKey) {
+            return Boolean(
+                apiKey &&
+                apiKey !== "ENTERYOURAUTOMODKEY" &&
+                !String(apiKey).startsWith("ENTERYOUR")
+            );
+        }
+
+        function getInitialVrcLoggerApiConfig(savedConfig) {
+            const legacyApiKeys = savedConfig.ApiKeys || {};
+            const current = savedConfig.VRCLoggerApi || {};
+            const legacyApiKey =
+                isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check)
+                    ? legacyApiKeys.Auto_Mod_Check
+                    : isConfiguredApiKey(legacyApiKeys.Auto_Mod_Check_Global)
+                        ? legacyApiKeys.Auto_Mod_Check_Global
+                        : "";
+
+            return {
+                dashboardBaseUrl: current.dashboardBaseUrl || current.dashboardEndpointUrl || legacyApiKeys.ApiEndpointUrL || "",
+                apiKey: current.apiKey || legacyApiKey || "",
+                headerName: current.headerName || DEFAULT_VRCLOGGER_HEADER_NAME,
+                groupId: current.groupId || ""
+            };
+        }
+
+        function getVrcLoggerApiConfigFromInputs() {
+            const headerLine = document.getElementById("vrcLoggerHeaderLine");
+            const parsedHeader = parseApiHeaderLine(headerLine ? headerLine.value : "");
+
+            vrcLoggerApiOptions.dashboardBaseUrl = trimTrailingSlash(
+                document.getElementById("vrcLoggerDashboardBaseUrl").value
+            );
+            vrcLoggerApiOptions.headerName =
+                parsedHeader.headerName ||
+                vrcLoggerApiOptions.headerName ||
+                DEFAULT_VRCLOGGER_HEADER_NAME;
+            vrcLoggerApiOptions.apiKey =
+                parsedHeader.apiKey || vrcLoggerApiOptions.apiKey || "";
+            const groupSelect = document.getElementById("vrcLoggerGroupId");
+            if (groupSelect) {
+                vrcLoggerApiOptions.groupId = groupSelect.value;
+            }
+
+            if (headerLine) {
+                headerLine.value = "";
+            }
+
+            return vrcLoggerApiOptions;
+        }
+
+        // Show warning modal with a custom message
+        function showWarningModal(message) {
+            document.getElementById("warningModalBody").textContent =
+                message;
+            const warningModal = new bootstrap.Modal(
+                document.getElementById("warningModal")
+            );
+
+            warningModal.show(); /* Show the modal */
+        }
+
+        // Load configuration from main process
+        async function loadConfig() {
+            try {
+                const savedConfig = await window.api.loadConfig();
+
+                // Ensure proper merging of configuration data
+                Object.assign(toggleOptions, savedConfig.Toggle || {});
+                Object.assign(ApiKeysOptions, savedConfig.ApiKeys || {});
+                Object.assign(vrcLoggerApiOptions, getInitialVrcLoggerApiConfig(savedConfig));
+                Object.assign(
+                    privacyandsafetyOptions,
+                    savedConfig.PrivacyandSafety || {}
+                );
+                Object.assign(vrcxOptions, savedConfig.vrcx || {});
+                Object.assign(
+                    directoriesOptions,
+                    savedConfig.Directories || {}
+                );
+                Object.assign(cacheOptions, savedConfig.cache || {});
+
+                renderVrcLoggerApiOptions();
+                renderOverlayUrl();
+                renderSafetyToggleOptions();
+                renderToggleOptions();
+            } catch (error) {
+                console.error("Failed to load config:", error);
+            }
+        }
+
+        // Save configuration to main process
+        async function saveConfig() {
+            const config = {
+                cache: cacheOptions,
+                Directories: directoriesOptions,
+                vrcx: vrcxOptions,
+                Toggle: toggleOptions,
+                PrivacyandSafety: privacyandsafetyOptions,
+                VRCLoggerApi: vrcLoggerApiOptions,
+                ApiKeys: ApiKeysOptions,
+            };
+
+            try {
+                await window.api.saveConfig(config);
+                console.log("Configuration saved.");
+            } catch (error) {
+                console.error("Failed to save config:", error);
+            }
+        }
+
+        // Initial rendering
+        function init() {
+            loadConfig();
+        }
+
+        // Safety Toggle options rendering
+        function renderSafetyToggleOptions() {
+            const toggleSafetyOptionsDiv = document.getElementById(
+                "safetytoggleOptions"
+            );
+            toggleSafetyOptionsDiv.innerHTML = ""; // Clear existing content
+            Object.keys(privacyandsafetyOptions).forEach((key) => {
+                const isChecked = privacyandsafetyOptions[key];
+                toggleSafetyOptionsDiv.innerHTML += `
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="${key}" ${isChecked ? "checked" : ""
+                    } onchange="updateSafetyToggleOptions('${key}')">
+                <label class="form-check-label" for="${key}">${key}</label>
+            </div>
+        `;
+            });
+        }
+
+        function renderVrcLoggerApiOptions() {
+            const apikeysOptionsDiv =
+                document.getElementById("apikeysOptions");
+            apikeysOptionsDiv.innerHTML = ""; // Clear existing content
+            const groupSelectHtml = vrcLoggerAuthorizedGroups.length
+                ? `
+            <div class="mb-3">
+                <label for="vrcLoggerGroupId" class="form-label">Authorized Group</label>
+                <select class="form-select" id="vrcLoggerGroupId" onchange="updateVrcLoggerApiOptions()">
+                    <option value="">Default group from API key</option>
+                    ${vrcLoggerAuthorizedGroups.map(group => `
+                        <option value="${escapeHtml(group.id || "")}" ${vrcLoggerApiOptions.groupId === group.id ? "selected" : ""}>
+                            ${escapeHtml(group.name || "Unknown Group")} (${escapeHtml(group.id || "unknown")})
+                        </option>
+                    `).join("")}
+                </select>
+            </div>`
+                : "";
+            apikeysOptionsDiv.innerHTML = `
+            <div class="mb-3">
+                <label for="vrcLoggerDashboardBaseUrl" class="form-label">Dashboard URL</label>
+                <input type="url" class="form-control" id="vrcLoggerDashboardBaseUrl" value="${escapeHtml(vrcLoggerApiOptions.dashboardBaseUrl)}" placeholder="https://banloggerbot.nekosunevr.co.uk" onchange="updateVrcLoggerApiOptions()">
+            </div>
+            <div class="mb-3">
+                <label for="vrcLoggerHeaderLine" class="form-label">API Header Line</label>
+                <input type="password" class="form-control" id="vrcLoggerHeaderLine" placeholder="vrclogger-api-key: copied-key-from-dashboard" onchange="updateVrcLoggerApiOptions()">
+                <div class="form-text text-white-50">Saved key: ${escapeHtml(maskApiKey(vrcLoggerApiOptions.apiKey))}</div>
+            </div>
+            ${groupSelectHtml}
+            <button type="button" class="btn btn-primary" onclick="testVrcLoggerApiConnection()">Test Connection</button>
+            <div id="vrcLoggerApiStatus" class="small mt-3 text-white-50"></div>
+        `;
+        }
+
+        // Update API key option
+        function updateApikeyOption(key) {
+            ApiKeysOptions[key] = document.getElementById(key).value;
+            saveConfig(); // Save configuration after updating API key
+        }
+
+        function updateVrcLoggerApiOptions() {
+            getVrcLoggerApiConfigFromInputs();
+            saveConfig();
+        }
+
+        async function testVrcLoggerApiConnection() {
+            const statusElement = document.getElementById("vrcLoggerApiStatus");
+            const apiConfig = getVrcLoggerApiConfigFromInputs();
+            statusElement.textContent = "Testing connection...";
+
+            await saveConfig();
+
+            try {
+                const result = await window.api.testVrcLoggerApi(apiConfig);
+                if (!result.ok) {
+                    statusElement.textContent = `Connection failed: ${result.message}`;
+                    return;
+                }
+
+                vrcLoggerAuthorizedGroups.splice(
+                    0,
+                    vrcLoggerAuthorizedGroups.length,
+                    ...(Array.isArray(result.authorizedGroups) ? result.authorizedGroups : [])
+                );
+                const selectedGroupIsAuthorized = vrcLoggerAuthorizedGroups.some(
+                    group => group.id === vrcLoggerApiOptions.groupId
+                );
+                if (
+                    (!vrcLoggerApiOptions.groupId || !selectedGroupIsAuthorized) &&
+                    result.group &&
+                    result.group.id
+                ) {
+                    vrcLoggerApiOptions.groupId = result.group.id;
+                    await saveConfig();
+                }
+                renderVrcLoggerApiOptions();
+
+                const permissions = result.key && Array.isArray(result.key.permissions)
+                    ? result.key.permissions.join(", ")
+                    : "none";
+                const authorizedGroups = Array.isArray(result.authorizedGroups)
+                    ? result.authorizedGroups.map(group => `${group.name || "Unknown"} (${group.id || "unknown"})`).join(", ")
+                    : "none";
+                const selectedGroup =
+                    vrcLoggerAuthorizedGroups.find(group => group.id === vrcLoggerApiOptions.groupId) ||
+                    result.group ||
+                    {};
+                const guildName = result.guild && result.guild.name || result.guildName || "Unknown";
+                const refreshedStatusElement = document.getElementById("vrcLoggerApiStatus");
+                refreshedStatusElement.innerHTML = `
+            Connection OK. Discord Server: ${escapeHtml(guildName)} (${escapeHtml(result.guildId || "unknown")})
+            <br>Selected Group: ${escapeHtml(selectedGroup.name || "Unknown")} (${escapeHtml(selectedGroup.id || "unknown")})
+            <br>Authorized Groups: ${escapeHtml(authorizedGroups)}
+            <br>Discord User: ${escapeHtml(result.key && result.key.displayName || "unknown")} (${escapeHtml(result.key && result.key.userId || "unknown")})
+            <br>Role: ${escapeHtml(result.key && result.key.role || "unknown")}
+            <br>Admin: ${result.key && result.key.isAdmin ? "yes" : "no"}
+            <br>Permissions: ${escapeHtml(permissions)}
+            <br>Key: ${escapeHtml(result.maskedApiKey)}
+        `;
+            } catch (error) {
+                statusElement.textContent = `Connection failed: ${error.message}`;
+            }
+        }
+
+        async function renderOverlayUrl() {
+            const overlayUrl = document.getElementById("overlayUrl");
+            if (!overlayUrl) return;
+            const url = await window.api.getOverlayUrl();
+            overlayUrl.textContent = url;
+        }
+
+        // Update safety toggle options
+        function updateSafetyToggleOptions(key) {
+            privacyandsafetyOptions[key] =
+                document.getElementById(key).checked;
+            saveConfig();
+        }
+
+        // Toggle options rendering
+        function renderToggleOptions() {
+            const toggleOptionsDiv =
+                document.getElementById("toggleOptions");
+            toggleOptionsDiv.innerHTML = ""; // Clear existing content
+            const hiddenToggles = new Set([
+                "Mainwebhook",
+                "Authwebhook",
+                "Ohterwebhook",
+                "isEmbed",
+                "Counters",
+                "Countersavi",
+                "Countersvrca"
+            ]);
+            Object.keys(toggleOptions).filter((key) => !hiddenToggles.has(key)).forEach((key) => {
+                const isChecked = toggleOptions[key];
+                toggleOptionsDiv.innerHTML += `
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="${key}" ${isChecked ? "checked" : ""
+                    } onchange="updateToggleOptions('${key}')">
+                <label class="form-check-label" for="${key}">${key}</label>
+            </div>
+        `;
+            });
+        }
+
+        // Update toggle options
+        function updateToggleOptions(key) {
+            toggleOptions[key] = document.getElementById(key).checked;
+            saveConfig();
+        }
+
+        // Initialize the page
+        init();
+    </script>
+</body>
+
+</html>

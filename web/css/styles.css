@@ -1,0 +1,39 @@
+body {
+    background-color: #121212;
+    color: #fff;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #343a40;
+    border-color: #343a40;
+}
+
+.logsDiv {
+    overflow-y: auto;
+    height: 400px;
+    background-color: #212529;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+#logs p {
+    color: pink;
+}
+
+.log-image {
+    max-width: 80px;
+    height: auto;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+
+.log-image:hover {
+    transform: scale(1.1);
+}
+
+.modal-content {
+    background: #222;
+    padding: 10px;
+    border-radius: 8px;
+}
