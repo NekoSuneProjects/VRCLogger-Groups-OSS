@@ -1,0 +1,43 @@
+{
+  "PORT": 3688,
+  "ServerData": {
+    "SQL": {
+      "HOST": "",
+      "PORT": "3306",
+      "USER": "",
+      "PASS": "",
+      "DATABASE": ""
+    }
+  },
+  "VRChat": {
+    "loginCooldownMs": 60000,
+    "loginJitterMs": 15000,
+    "loginRetryCooldownMs": 300000,
+    "loginMaxRetries": 2,
+    "accounts": [
+      {
+        "name": "integration",
+        "user": "",
+        "pass": "",
+        "twofa": "",
+        "ports": [3688]
+      },
+      {
+        "name": "profile-verify",
+        "user": "",
+        "pass": "",
+        "twofa": "",
+        "ports": [6432]
+      }
+    ]
+  },
+  "loggerPost": {
+    "enable": true,
+    "type": "nekowh|discord",
+    "urladd": "",
+    "urlupdate": "",
+    "urlprivate": "",
+    "token": ""
+  }, 
+  "debug": false
+}
