@@ -291,10 +291,19 @@ vrclogger-api-key: <key>
 | `GET /api/client/resolve-name/:name` | Display name → user id, **including old names** |
 | `GET /api/client/names/:userId` | Every known display name for a user |
 | `GET /api/client/profile/:id` | User or avatar profile (`usr_` / `avtr_`) |
+| `GET /api/client/user/:userId` | User profile |
+| `GET /api/client/users/:userId/profile` | User profile (alias) |
+| `GET /api/client/avatar/:avatarId` | Avatar profile |
+| `GET /api/client/avatars/:avatarId/profile` | Avatar profile (alias) |
+| `GET /api/client/check/:userId` | Quick blacklist check |
+| `GET /api/client/automod/check/:userId` | Automod check |
 | `GET /api/client/world` | World / instance lookup |
 | `GET /api/client/global-history` | Shared analytics |
 | `POST /api/client/avatar-analysis` | Avatar analysis |
-| `GET /check/:userId`, `GET /automod/check/:userId` | Quick lookups |
+
+Each route also has an explicitly scoped form,
+`/api/client/:guildId/:groupId/...`, which the client may use instead. Both
+resolve to the same single server and group.
 
 ## Group and member cache
 

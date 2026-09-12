@@ -75,6 +75,7 @@
     "globalAnalytics": {
       "autoShare": false
     },
+    "groupCacheIntervalMs": 900000,
     "ACCESS": {
       "ban": ["owner", "co-owner", "admin"],
       "unban": ["owner", "co-owner"],
