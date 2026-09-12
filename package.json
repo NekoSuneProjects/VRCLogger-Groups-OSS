@@ -73,7 +73,7 @@
         "configstore": "^8.0.0",
         "find-process": "^2.1.1",
         "fuzzyset": "^1.0.7",
-        "music-metadata": "^11.12.3",
+        "music-metadata": "^11.15.0",
         "node-fetch": "3.3.2",
         "p-queue": "^9.2.0",
         "path": "^0.12.7",
